@@ -843,6 +843,7 @@ void rd_kafka_destroy_final (rd_kafka_t *rk) {
 
 static void rd_kafka_destroy_app (rd_kafka_t *rk, int flags) {
         thrd_t thrd;
+		static char rd_kafka_thread_name[64] = "app"; //TODO: why need this?
 #ifndef _MSC_VER
 	int term_sig = rk->rk_conf.term_sig;
 #endif

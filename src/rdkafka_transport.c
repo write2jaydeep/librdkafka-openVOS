@@ -62,7 +62,7 @@
 
 /* AIX doesn't have MSG_DONTWAIT */
 #ifndef MSG_DONTWAIT
-#  define MSG_DONTWAIT MSG_NONBLOCK
+#  define MSG_DONTWAIT _VOS_MSG_NONBLOCKING
 #endif
 
 
