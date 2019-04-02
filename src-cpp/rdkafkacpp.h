@@ -76,7 +76,7 @@ extern "C" {
         struct rd_kafka_s;
         struct rd_kafka_topic_s;
         struct rd_kafka_message_s;
-};
+}
 
 namespace RdKafka {
 
@@ -363,7 +363,7 @@ enum ErrorCode {
         ERR_INVALID_REQUEST = 42,
         /** Message format on broker does not support request */
         ERR_UNSUPPORTED_FOR_MESSAGE_FORMAT = 43,
-        /** Isolation policy volation */
+        /** Policy violation */
         ERR_POLICY_VIOLATION = 44,
         /** Broker received an out of order sequence number */
         ERR_OUT_OF_ORDER_SEQUENCE_NUMBER = 45,
@@ -1699,7 +1699,7 @@ public:
  */
 class RD_EXPORT Message {
  public:
-  /** @brief Message persistance status can be used by the application to
+  /** @brief Message persistence status can be used by the application to
    *         find out if a produced message was persisted in the topic log. */
   enum Status {
     /**< Message was never transmitted to the broker, or failed with
@@ -1791,7 +1791,7 @@ class RD_EXPORT Message {
   virtual struct rd_kafka_message_s *c_ptr () = 0;
 
   /**
-   * @brief Returns the message's persistance status in the topic log.
+   * @brief Returns the message's persistence status in the topic log.
    */
   virtual Status status () const = 0;
 
@@ -2702,10 +2702,18 @@ class Metadata {
   typedef TopicMetadataVector::const_iterator  TopicMetadataIterator;
 
 
-  /** @brief Broker list */
+  /** 
+  * @brief Broker list 
+  * @remark Ownership of the returned pointer is retained by the instance of
+  * Metadata that is called. 
+  */
   virtual const BrokerMetadataVector *brokers() const = 0;
 
-  /** @brief Topic list */
+  /** 
+  * @brief Topic list 
+  * @remark Ownership of the returned pointer is retained by the instance of
+  * Metadata that is called. 
+  */
   virtual const TopicMetadataVector  *topics() const = 0;
 
   /** @brief Broker (id) originating this metadata */
