@@ -89,9 +89,9 @@
 * Strings, formatting, printf, ..
 */
 
-/* size_t and ssize_t format strings */
-#define PRIusz  "zu"
-#define PRIdsz  "zd"
+/* size_t and ssize_t format strings */                                   
+#define PRIusz  "lu" //JD: Changed from "zu" to "lu": VOS doesn't support
+#define PRIdsz  "ld" //JD: Changed from "zd" to "ld": VOS doesn't support
 
 #define RD_FORMAT(...) __attribute__((format (__VA_ARGS__)))
 #define rd_snprintf(...)  snprintf(__VA_ARGS__)
