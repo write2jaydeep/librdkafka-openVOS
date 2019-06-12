@@ -30,6 +30,7 @@
 #define _RDKAFKA_CONF_H_
 
 #include "rdlist.h"
+#include "rdkafka_cert.h"
 
 
 /**
@@ -116,7 +117,9 @@ typedef	enum {
         _RK_HIDDEN = 0x40,
         _RK_HIGH = 0x80, /* High Importance */
         _RK_MED = 0x100, /* Medium Importance */
-        _RK_EXPERIMENTAL = 0x200 /* Experimental (unsupported) property */
+        _RK_EXPERIMENTAL = 0x200, /* Experimental (unsupported) property */
+        _RK_SENSITIVE = 0x400     /* The configuration property's value
+                                   * might contain sensitive information. */
 } rd_kafka_conf_scope_t;
 
 /**< While the client groups is a generic concept, it is currently
@@ -138,6 +141,10 @@ typedef enum {
 } rd_kafka_offset_method_t;
 
 
+typedef enum {
+        RD_KAFKA_SSL_ENDPOINT_ID_NONE,
+        RD_KAFKA_SSL_ENDPOINT_ID_HTTPS,  /**< RFC2818 */
+} rd_kafka_ssl_endpoint_id_t;
 
 /* Increase in steps of 64 as needed. */
 #define RD_KAFKA_CONF_PROPS_IDX_MAX (64*24)
@@ -203,21 +210,36 @@ struct rd_kafka_conf_s {
 	rd_kafka_secproto_t security_protocol;
 
 #if WITH_SSL
-	struct {
-		SSL_CTX *ctx;
-		char *cipher_suites;
+        struct {
+                SSL_CTX *ctx;
+                char *cipher_suites;
 #if OPENSSL_VERSION_NUMBER >= 0x1000200fL && !defined(LIBRESSL_VERSION_NUMBER)
-		char *curves_list;
-		char *sigalgs_list;
+                char *curves_list;
+                char *sigalgs_list;
 #endif
-		char *key_location;
-		char *key_password;
-		char *cert_location;
-		char *ca_location;
-		char *crl_location;
-		char *keystore_location;
-		char *keystore_password;
-	} ssl;
+                char *key_location;
+                char *key_pem;
+                rd_kafka_cert_t *key;
+                char *key_password;
+                char *cert_location;
+                char *cert_pem;
+                rd_kafka_cert_t *cert;
+                char *ca_location;
+                rd_kafka_cert_t *ca;
+                char *crl_location;
+                char *keystore_location;
+                char *keystore_password;
+                int   endpoint_identification;
+                int   enable_verify;
+                int (*cert_verify_cb) (rd_kafka_t *rk,
+                                       const char *broker_name,
+                                       int32_t broker_id,
+                                       int *x509_error,
+                                       int depth,
+                                       const char *buf, size_t size,
+                                       char *errstr, size_t errstr_size,
+                                       void *opaque);
+        } ssl;
 #endif
 
         struct {
@@ -242,6 +264,13 @@ struct rd_kafka_conf_s {
 #endif
 #if WITH_SASL_OAUTHBEARER
                 char *oauthbearer_config;
+                int   enable_oauthbearer_unsecure_jwt;
+
+                /* SASL/OAUTHBEARER token refresh event callback */
+                void (*oauthbearer_token_refresh_cb) (
+                        rd_kafka_t *rk,
+                        const char *oauthbearer_config,
+                        void *opaque);
 #endif
         } sasl;
 
@@ -409,11 +438,6 @@ struct rd_kafka_conf_s {
                                      void *opaque);
 
 
-        /* SASL/OAUTHBEARER token refresh event callback */
-#if WITH_SASL_OAUTHBEARER
-        void (*oauthbearer_token_refresh_cb) (rd_kafka_t *rk,
-                              void *opaque);
-#endif
 	/* Opaque passed to callbacks. */
 	void  *opaque;
 
@@ -489,6 +513,11 @@ struct rd_kafka_topic_conf_s {
 
 
 void rd_kafka_anyconf_destroy (int scope, void *conf);
+
+void rd_kafka_desensitize_str (char *str);
+
+void rd_kafka_conf_desensitize (rd_kafka_conf_t *conf);
+void rd_kafka_topic_conf_desensitize (rd_kafka_topic_conf_t *tconf);
 
 const char *rd_kafka_conf_finalize (rd_kafka_type_t cltype,
                                     rd_kafka_conf_t *conf);

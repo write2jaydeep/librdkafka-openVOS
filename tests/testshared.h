@@ -32,6 +32,17 @@
  * C variables and functions shared with C++ tests
  */
 
+
+/* ANSI color codes */
+#define _C_CLR "\033[0m"
+#define _C_RED "\033[31m"
+#define _C_GRN "\033[32m"
+#define _C_YEL "\033[33m"
+#define _C_BLU "\033[34m"
+#define _C_MAG "\033[35m"
+#define _C_CYA "\033[36m"
+
+
 /** @returns the \p msecs timeout multiplied by the test timeout multiplier */
 extern int tmout_multip (int msecs);
 
@@ -78,6 +89,8 @@ void test_msg_parse00 (const char *func, int line,
                        const char *topic, int32_t partition, int64_t offset,
                        const char *key, size_t key_size);
 
+
+int test_check_builtin (const char *feature);
 
 /**
  * @returns the current test's name (thread-local)

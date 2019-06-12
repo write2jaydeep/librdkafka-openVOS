@@ -53,8 +53,15 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdint.h>
+#include <sys/types.h>
 
 #ifdef _MSC_VER
+#ifndef ssize_t
+#ifndef _BASETSD_H_
+#include <basetsd.h>
+#endif
+typedef SSIZE_T ssize_t;
+#endif
 #undef RD_EXPORT
 #ifdef LIBRDKAFKA_STATICLIB
 #define RD_EXPORT
@@ -454,6 +461,29 @@ RD_EXPORT
 std::string  err2str(RdKafka::ErrorCode err);
 
 
+
+/**
+ * @enum CertificateType
+ * @brief SSL certificate types
+ */
+enum CertificateType {
+  CERT_PUBLIC_KEY,   /**< Client's public key */
+  CERT_PRIVATE_KEY,  /**< Client's private key */
+  CERT_CA,           /**< CA certificate */
+  CERT__CNT
+};
+
+/**
+ * @enum CertificateEncoding
+ * @brief SSL certificate encoding
+ */
+enum CertificateEncoding {
+  CERT_ENC_PKCS12,  /**< PKCS#12 */
+  CERT_ENC_DER,     /**< DER / binary X.509 ASN1 */
+  CERT_ENC_PEM,     /**< PEM */
+  CERT_ENC__CNT
+};
+
 /**@} */
 
 
@@ -517,7 +547,10 @@ class RD_EXPORT DeliveryReportCb {
  * The SASL/OAUTHBEARER token refresh callback is triggered via RdKafka::poll()
  * whenever OAUTHBEARER is the SASL mechanism and a token needs to be retrieved,
  * typically based on the configuration defined in \c sasl.oauthbearer.config.
- * 
+ *
+ * The \c oauthbearer_config argument is the value of the
+ * sasl.oauthbearer.config configuration property.
+ *
  * The callback should invoke RdKafka::oauthbearer_set_token() or
  * RdKafka::oauthbearer_set_token_failure() to indicate success or failure,
  * respectively.
@@ -540,7 +573,7 @@ class RD_EXPORT OAuthBearerTokenRefreshCb {
   /**
    * @brief SASL/OAUTHBEARER token refresh callback class.
    */
-  virtual void oauthbearer_token_refresh_cb () = 0;
+  virtual void oauthbearer_token_refresh_cb (const std::string &oauthbearer_config) = 0;
 
   virtual ~OAuthBearerTokenRefreshCb() { }
 };
@@ -828,6 +861,60 @@ public:
 
 
 /**
+ * @brief SSL broker certificate verification class.
+ *
+ * @remark Class instance must outlive the RdKafka client instance.
+ */
+class RD_EXPORT SslCertificateVerifyCb {
+public:
+  /**
+   * @brief SSL broker certificate verification callback.
+   *
+   * The verification callback is triggered from internal librdkafka threads
+   * upon connecting to a broker. On each connection attempt the callback
+   * will be called for each certificate in the broker's certificate chain,
+   * starting at the root certification, as long as the application callback
+   * returns 1 (valid certificate).
+   *
+   * \p broker_name and \p broker_id correspond to the broker the connection
+   * is being made to.
+   * The \c x509_error argument indicates if OpenSSL's verification of
+   * the certificate succeed (0) or failed (an OpenSSL error code).
+   * The application may set the SSL context error code by returning 0
+   * from the verify callback and providing a non-zero SSL context error code
+   * in \p x509_error.
+   * If the verify callback sets \x509_error to 0, returns 1, and the
+   * original \p x509_error was non-zero, the error on the SSL context will
+   * be cleared.
+   * \p x509_error is always a valid pointer to an int.
+   *
+   * \p depth is the depth of the current certificate in the chain, starting
+   * at the root certificate.
+   *
+   * The certificate itself is passed in binary DER format in \p buf of
+   * size \p size.
+   *
+   * The callback must 1 if verification succeeds, or 0 if verification fails
+   * and write a human-readable error message
+   * to \p errstr.
+   *
+   * @warning This callback will be called from internal librdkafka threads.
+   *
+   * @remark See <openssl/x509_vfy.h> in the OpenSSL source distribution
+   *         for a list of \p x509_error codes.
+   */
+  virtual bool ssl_cert_verify_cb (const std::string &broker_name,
+                                   int32_t broker_id,
+                                   int *x509_error,
+                                   int depth,
+                                   const char *buf, size_t size,
+                                   std::string &errstr) = 0;
+
+  virtual ~SslCertificateVerifyCb() {}
+};
+
+
+/**
  * @brief \b Portability: SocketCb callback class
  *
  */
@@ -993,6 +1080,48 @@ class RD_EXPORT Conf {
                                 OffsetCommitCb *offset_commit_cb,
                                 std::string &errstr) = 0;
 
+  /** @brief Use with \p name = \c \"ssl_cert_verify_cb\".
+   *  @returns CONF_OK on success or CONF_INVALID if SSL is
+   *           not supported in this build.
+  */
+  virtual Conf::ConfResult set(const std::string &name,
+                               SslCertificateVerifyCb *ssl_cert_verify_cb,
+                               std::string &errstr) = 0;
+
+  /**
+   * @brief Set certificate/key \p cert_type from the \p cert_enc encoded
+   *        memory at \p buffer of \p size bytes.
+   *
+   * @param cert_type Certificate or key type to configure.
+   * @param cert_enc  Buffer \p encoding type.
+   * @param buffer Memory pointer to encoded certificate or key.
+   *               The memory is not referenced after this function returns.
+   * @param size Size of memory at \p buffer.
+   * @param errstr A human-readable error string will be written to this string
+   *               on failure.
+   *
+   * @returns CONF_OK on success or CONF_INVALID if the memory in
+   *          \p buffer is of incorrect encoding, or if librdkafka
+   *          was not built with SSL support.
+   *
+   * @remark Calling this method multiple times with the same \p cert_type
+   *         will replace the previous value.
+   *
+   * @remark Calling this method with \p buffer set to NULL will clear the
+   *         configuration for \p cert_type.
+   *
+   * @remark The private key may require a password, which must be specified
+   *         with the `ssl.key.password` configuration property prior to
+   *         calling this function.
+   *
+   * @remark Private and public keys in PEM format may also be set with the
+   *         `ssl.key.pem` and `ssl.certificate.pem` configuration properties.
+   */
+  virtual Conf::ConfResult set_ssl_cert (RdKafka::CertificateType cert_type,
+                                         RdKafka::CertificateEncoding cert_enc,
+                                         const void *buffer, size_t size,
+                                         std::string &errstr) = 0;
+
   /** @brief Query single configuration value
    *
    * Do not use this method to get callbacks registered by the configuration file.
@@ -1052,6 +1181,9 @@ class RD_EXPORT Conf {
    *  @returns CONF_OK if the property was set previously set and
    *           returns the value in \p offset_commit_cb. */
   virtual Conf::ConfResult get(OffsetCommitCb *&offset_commit_cb) const = 0;
+
+  /** @brief Use with \p name = \c \"ssl_cert_verify_cb\" */
+  virtual Conf::ConfResult get(SslCertificateVerifyCb *&ssl_cert_verify_cb) const = 0;
 
   /** @brief Dump configuration names and values to list containing
    *         name,value tuples */

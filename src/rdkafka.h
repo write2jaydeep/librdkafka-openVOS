@@ -1781,6 +1781,8 @@ void rd_kafka_conf_set_stats_cb(rd_kafka_conf_t *conf,
  * @param oauthbearer_token_refresh_cb the callback to set; callback function
  *  arguments:<br>
  *   \p rk - Kafka handle<br>
+ *   \p oauthbearer_config - Value of configuration property
+ *                           sasl.oauthbearer.config.
  *   \p opaque - Application-provided opaque set via
  *   rd_kafka_conf_set_opaque()
  * 
@@ -1801,87 +1803,18 @@ void rd_kafka_conf_set_stats_cb(rd_kafka_conf_t *conf,
  * directly or, more typically, by invoking either rd_kafka_poll() or
  * rd_kafka_queue_poll() -- in order to cause retrieval of an initial token to
  * occur.
+ *
+ * An unsecured JWT refresh handler is provided by librdkafka for development
+ * and testing purposes, it is enabled by setting
+ * the \c enable.sasl.oauthbearer.unsecure.jwt property to true and is
+ * mutually exclusive to using a refresh callback.
  */
 RD_EXPORT
 void rd_kafka_conf_set_oauthbearer_token_refresh_cb (
         rd_kafka_conf_t *conf,
-        void (*oauthbearer_token_refresh_cb) (rd_kafka_t *rk, void *opaque));
-
-/**
- * @brief Set SASL/OAUTHBEARER token and metadata
- *
- * @param rk Client instance.
- * @param token_value the mandatory token value to set, often (but not
- *  necessarily) a JWS compact serialization as per
- *  https://tools.ietf.org/html/rfc7515#section-3.1.
- * @param md_lifetime_ms when the token expires, in terms of the number of
- *  milliseconds since the epoch.
- * @param md_principal_name the mandatory Kafka principal name associated
- *  with the token.
- * @param extensions optional SASL extensions key-value array with
- *  \p extensions_size elements (number of keys * 2), where [i] is the key and
- *  [i+1] is the key's value, to be communicated to the broker
- *  as additional key-value pairs during the initial client response as per
- *  https://tools.ietf.org/html/rfc7628#section-3.1. The key-value pairs are
- *  copied.
- * @param extension_size the number of SASL extension keys plus values,
- *  which must be a non-negative multiple of 2.
- * @param errstr A human readable error string (nul-terminated) is written to
- *               this location that must be of at least \p errstr_size bytes.
- *               The \p errstr is only written to if there is an error.
- * 
- * The SASL/OAUTHBEARER token refresh callback or event handler should invoke
- * this method upon success. The extension keys must not include the reserved
- * key "`auth`", and all extension keys and values must conform to the required
- * format as per https://tools.ietf.org/html/rfc7628#section-3.1:
- * 
- *     key            = 1*(ALPHA)
- *     value          = *(VCHAR / SP / HTAB / CR / LF )
- * 
- * @returns \c RD_KAFKA_RESP_ERR_NO_ERROR on success, otherwise \p errstr set
- *              and:<br>
- *          \c RD_KAFKA_RESP_ERR__INVALID_ARG if any of the arguments are
- *              invalid;<br>
- *          \c RD_KAFKA_RESP_ERR__NOT_IMPLEMENTED if SASL/OAUTHBEARER is not
- *              supported by this build;<br>
- *          \c RD_KAFKA_RESP_ERR__STATE if SASL/OAUTHBEARER is supported but is
- *              not configured as the client's authentication mechanism.<br>
- * 
- * @sa rd_kafka_oauthbearer_set_token_failure
- * @sa rd_kafka_conf_set_oauthbearer_token_refresh_cb
- */
-RD_EXPORT
-rd_kafka_resp_err_t
-rd_kafka_oauthbearer_set_token (rd_kafka_t *rk,
-                                const char *token_value,
-                                int64_t md_lifetime_ms,
-                                const char *md_principal_name,
-                                const char **extensions, size_t extension_size,
-                                char *errstr, size_t errstr_size);
-
-/**
- * @brief SASL/OAUTHBEARER token refresh failure indicator.
- *
- * @param rk Client instance.
- * @param errstr mandatory human readable error reason for failing to acquire
- *  a token.
- * 
- * The SASL/OAUTHBEARER token refresh callback or event handler should invoke
- * this method upon failure.
- * 
- * @returns \c RD_KAFKA_RESP_ERR_NO_ERROR on success, otherwise:<br>
- *          \c RD_KAFKA_RESP_ERR__NOT_IMPLEMENTED if SASL/OAUTHBEARER is not
- *              supported by this build;<br>
- *          \c RD_KAFKA_RESP_ERR__STATE if SASL/OAUTHBEARER is supported but is
- *              not configured as the client's authentication mechanism,<br>
- *          \c RD_KAFKA_RESP_ERR__INVALID_ARG if no error string is supplied.
- * 
- * @sa rd_kafka_oauthbearer_set_token
- * @sa rd_kafka_conf_set_oauthbearer_token_refresh_cb
- */
-RD_EXPORT
-rd_kafka_resp_err_t
-rd_kafka_oauthbearer_set_token_failure (rd_kafka_t *rk, const char *errstr);
+        void (*oauthbearer_token_refresh_cb) (rd_kafka_t *rk,
+                                              const char *oauthbearer_config,
+                                              void *opaque));
 
 /**
  * @brief Set socket callback.
@@ -1960,6 +1893,126 @@ void rd_kafka_conf_set_open_cb (rd_kafka_conf_t *conf,
                                                 int flags, mode_t mode,
                                                 void *opaque));
 #endif
+
+
+/**
+ * @brief Sets the verification callback of the broker certificate
+ *
+ * The verification callback is triggered from internal librdkafka threads
+ * upon connecting to a broker. On each connection attempt the callback
+ * will be called for each certificate in the broker's certificate chain,
+ * starting at the root certification, as long as the application callback
+ * returns 1 (valid certificate).
+ * \c broker_name and \c broker_id correspond to the broker the connection
+ * is being made to.
+ * The \c x509_error argument indicates if OpenSSL's verification of
+ * the certificate succeed (0) or failed (an OpenSSL error code).
+ * The application may set the SSL context error code by returning 0
+ * from the verify callback and providing a non-zero SSL context error code
+ * in \p x509_error.
+ * If the verify callback sets \x509_error to 0, returns 1, and the
+ * original \p x509_error was non-zero, the error on the SSL context will
+ * be cleared.
+ * \p x509_error is always a valid pointer to an int.
+ *
+ * \c depth is the depth of the current certificate in the chain, starting
+ * at the root certificate.
+ *
+ * The certificate itself is passed in binary DER format in \c buf of
+ * size \c size.
+ *
+ * The callback must return 1 if verification succeeds, or
+ * 0 if verification fails and then write a human-readable error message
+ * to \c errstr (limited to \c errstr_size bytes, including nul-term).
+ *
+ * @returns RD_KAFKA_CONF_OK if SSL is supported in this build, else
+ *          RD_KAFKA_CONF_INVALID.
+ *
+ * @warning This callback will be called from internal librdkafka threads.
+ *
+ * @remark See <openssl/x509_vfy.h> in the OpenSSL source distribution
+ *         for a list of \p x509_error codes.
+ */
+RD_EXPORT
+rd_kafka_conf_res_t rd_kafka_conf_set_ssl_cert_verify_cb (
+        rd_kafka_conf_t *conf,
+        int (*ssl_cert_verify_cb) (rd_kafka_t *rk,
+                                   const char *broker_name,
+                                   int32_t broker_id,
+                                   int *x509_error,
+                                   int depth,
+                                   const char *buf, size_t size,
+                                   char *errstr, size_t errstr_size,
+                                   void *opaque));
+
+
+/**
+ * @enum rd_kafka_cert_type_t
+ *
+ * @brief SSL certificate type
+ *
+ * @sa rd_kafka_conf_set_ssl_cert
+ */
+typedef enum rd_kafka_cert_type_t {
+        RD_KAFKA_CERT_PUBLIC_KEY,  /**< Client's public key */
+        RD_KAFKA_CERT_PRIVATE_KEY, /**< Client's private key */
+        RD_KAFKA_CERT_CA,          /**< CA certificate */
+        RD_KAFKA_CERT__CNT,
+} rd_kafka_cert_type_t;
+
+/**
+ * @enum rd_kafka_cert_enc_t
+ *
+ * @brief SSL certificate encoding
+ *
+ * @sa rd_kafka_conf_set_ssl_cert
+ */
+typedef enum rd_kafka_cert_enc_t {
+        RD_KAFKA_CERT_ENC_PKCS12,  /**< PKCS#12 */
+        RD_KAFKA_CERT_ENC_DER,     /**< DER / binary X.509 ASN1 */
+        RD_KAFKA_CERT_ENC_PEM,     /**< PEM */
+        RD_KAFKA_CERT_ENC__CNT,
+} rd_kafka_cert_enc_t;
+
+
+/**
+ * @brief Set certificate/key \p cert_type from the \p cert_enc encoded
+ *        memory at \p buffer of \p size bytes.
+ *
+ * @param conf Configuration object.
+ * @param cert_type Certificate or key type to configure.
+ * @param cert_enc  Buffer \p encoding type.
+ * @param buffer Memory pointer to encoded certificate or key.
+ *               The memory is not referenced after this function returns.
+ * @param size Size of memory at \p buffer.
+ * @param errstr Memory were a human-readable error string will be written
+ *               on failure.
+ * @param errstr_size Size of \p errstr, including space for nul-terminator.
+ *
+ * @returns RD_KAFKA_CONF_OK on success or RD_KAFKA_CONF_INVALID if the
+ *          memory in \p buffer is of incorrect encoding, or if librdkafka
+ *          was not built with SSL support.
+ *
+ * @remark Calling this method multiple times with the same \p cert_type
+ *         will replace the previous value.
+ *
+ * @remark Calling this method with \p buffer set to NULL will clear the
+ *         configuration for \p cert_type.
+ *
+ * @remark The private key may require a password, which must be specified
+ *         with the `ssl.key.password` configuration property prior to
+ *         calling this function.
+ *
+ * @remark Private and public keys in PEM format may also be set with the
+ *         `ssl.key.pem` and `ssl.certificate.pem` configuration properties.
+ */
+RD_EXPORT rd_kafka_conf_res_t
+rd_kafka_conf_set_ssl_cert (rd_kafka_conf_t *conf,
+                            rd_kafka_cert_type_t cert_type,
+                            rd_kafka_cert_enc_t cert_enc,
+                            const void *buffer, size_t size,
+                            char *errstr, size_t errstr_size);
+
 
 /**
  * @brief Sets the application's opaque pointer that will be passed to callbacks
@@ -2653,6 +2706,9 @@ rd_kafka_offsets_for_times (rd_kafka_t *rk,
  *
  * In standard setups it is usually not necessary to use this interface
  * rather than the free(3) functione.
+ *
+ * \p rk must be set for memory returned by APIs that take an \c rk argument,
+ * for other APIs pass NULL for \p rk.
  *
  * @remark rd_kafka_mem_free() must only be used for pointers returned by APIs
  *         that explicitly mention using this function for freeing.
@@ -4145,6 +4201,21 @@ size_t rd_kafka_event_message_array (rd_kafka_event_t *rkev,
  */
 RD_EXPORT
 size_t rd_kafka_event_message_count (rd_kafka_event_t *rkev);
+
+
+/**
+ * @returns the associated configuration string for the event, or NULL
+ *          if the configuration property is not set or if
+ *          not applicable for the given event type.
+ *
+ * The returned memory is read-only and its lifetime is the same as the
+ * event object.
+ *
+ * Event types:
+ *  - RD_KAFKA_EVENT_OAUTHBEARER_TOKEN_REFRESH: value of sasl.oauthbearer.config
+ */
+RD_EXPORT
+const char *rd_kafka_event_config_string (rd_kafka_event_t *rkev);
 
 
 /**
@@ -5780,6 +5851,92 @@ RD_EXPORT const rd_kafka_ConfigResource_t **
 rd_kafka_DescribeConfigs_result_resources (
         const rd_kafka_DescribeConfigs_result_t *result,
         size_t *cntp);
+
+/**@}*/
+
+
+
+/**
+ * @name Security APIs
+ * @{
+ *
+ */
+
+/**
+ * @brief Set SASL/OAUTHBEARER token and metadata
+ *
+ * @param rk Client instance.
+ * @param token_value the mandatory token value to set, often (but not
+ *  necessarily) a JWS compact serialization as per
+ *  https://tools.ietf.org/html/rfc7515#section-3.1.
+ * @param md_lifetime_ms when the token expires, in terms of the number of
+ *  milliseconds since the epoch.
+ * @param md_principal_name the mandatory Kafka principal name associated
+ *  with the token.
+ * @param extensions optional SASL extensions key-value array with
+ *  \p extensions_size elements (number of keys * 2), where [i] is the key and
+ *  [i+1] is the key's value, to be communicated to the broker
+ *  as additional key-value pairs during the initial client response as per
+ *  https://tools.ietf.org/html/rfc7628#section-3.1. The key-value pairs are
+ *  copied.
+ * @param extension_size the number of SASL extension keys plus values,
+ *  which must be a non-negative multiple of 2.
+ * @param errstr A human readable error string (nul-terminated) is written to
+ *               this location that must be of at least \p errstr_size bytes.
+ *               The \p errstr is only written to if there is an error.
+ *
+ * The SASL/OAUTHBEARER token refresh callback or event handler should invoke
+ * this method upon success. The extension keys must not include the reserved
+ * key "`auth`", and all extension keys and values must conform to the required
+ * format as per https://tools.ietf.org/html/rfc7628#section-3.1:
+ *
+ *     key            = 1*(ALPHA)
+ *     value          = *(VCHAR / SP / HTAB / CR / LF )
+ *
+ * @returns \c RD_KAFKA_RESP_ERR_NO_ERROR on success, otherwise \p errstr set
+ *              and:<br>
+ *          \c RD_KAFKA_RESP_ERR__INVALID_ARG if any of the arguments are
+ *              invalid;<br>
+ *          \c RD_KAFKA_RESP_ERR__NOT_IMPLEMENTED if SASL/OAUTHBEARER is not
+ *              supported by this build;<br>
+ *          \c RD_KAFKA_RESP_ERR__STATE if SASL/OAUTHBEARER is supported but is
+ *              not configured as the client's authentication mechanism.<br>
+ *
+ * @sa rd_kafka_oauthbearer_set_token_failure
+ * @sa rd_kafka_conf_set_oauthbearer_token_refresh_cb
+ */
+RD_EXPORT
+rd_kafka_resp_err_t
+rd_kafka_oauthbearer_set_token (rd_kafka_t *rk,
+                                const char *token_value,
+                                int64_t md_lifetime_ms,
+                                const char *md_principal_name,
+                                const char **extensions, size_t extension_size,
+                                char *errstr, size_t errstr_size);
+
+/**
+ * @brief SASL/OAUTHBEARER token refresh failure indicator.
+ *
+ * @param rk Client instance.
+ * @param errstr mandatory human readable error reason for failing to acquire
+ *  a token.
+ *
+ * The SASL/OAUTHBEARER token refresh callback or event handler should invoke
+ * this method upon failure.
+ *
+ * @returns \c RD_KAFKA_RESP_ERR_NO_ERROR on success, otherwise:<br>
+ *          \c RD_KAFKA_RESP_ERR__NOT_IMPLEMENTED if SASL/OAUTHBEARER is not
+ *              supported by this build;<br>
+ *          \c RD_KAFKA_RESP_ERR__STATE if SASL/OAUTHBEARER is supported but is
+ *              not configured as the client's authentication mechanism,<br>
+ *          \c RD_KAFKA_RESP_ERR__INVALID_ARG if no error string is supplied.
+ *
+ * @sa rd_kafka_oauthbearer_set_token
+ * @sa rd_kafka_conf_set_oauthbearer_token_refresh_cb
+ */
+RD_EXPORT
+rd_kafka_resp_err_t
+rd_kafka_oauthbearer_set_token_failure (rd_kafka_t *rk, const char *errstr);
 
 /**@}*/
 

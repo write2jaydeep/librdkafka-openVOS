@@ -29,13 +29,9 @@
 #ifndef _RDKAFKA_SASL_OAUTHBEARER_H_
 #define _RDKAFKA_SASL_OAUTHBEARER_H_
 
-void rd_kafka_oauthbearer_unsecured_token(rd_kafka_t *rk, void *opaque);
-
-void rd_kafka_oauthbearer_enqueue_token_refresh(rd_kafka_t *rk);
-
-void rd_kafka_oauthbearer_enqueue_token_refresh_if_necessary(rd_kafka_t *rk);
-
-rd_bool_t rd_kafka_oauthbearer_has_token(rd_kafka_t *rk);
+void rd_kafka_oauthbearer_unsecured_token (rd_kafka_t *rk,
+                                           const char *oauthbearer_config,
+                                           void *opaque);
 
 rd_kafka_resp_err_t
 rd_kafka_oauthbearer_set_token0 (rd_kafka_t *rk,

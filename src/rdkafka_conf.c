@@ -45,6 +45,12 @@
 
 #ifndef _MSC_VER
 #include <netinet/tcp.h>
+#else
+
+#ifndef WIN32_MEAN_AND_LEAN
+#define WIN32_MEAN_AND_LEAN
+#endif
+#include <windows.h>
 #endif
 
 struct rd_kafka_property {
@@ -454,15 +460,6 @@ static const struct rd_kafka_property rd_kafka_properties[] = {
 	  _RK(log_cb),
 	  "Log callback (set with rd_kafka_conf_set_log_cb())",
           .pdef = rd_kafka_log_print },
-#if WITH_SASL_OAUTHBEARER
-        { _RK_GLOBAL, "oauthbearer_token_refresh_cb", _RK_C_PTR,
-          _RK(oauthbearer_token_refresh_cb),
-          "SASL/OAUTHBEARER token refresh callback (set with "
-          "rd_kafka_conf_set_oauthbearer_token_refresh_cb()); "
-          "the default will generate an unsecured JWS using "
-          "sasl.oauthbearer.config",
-          .pdef = rd_kafka_oauthbearer_unsecured_token },
-#endif
         { _RK_GLOBAL, "log_level", _RK_C_INT,
           _RK(log_level),
           "Logging level (syslog(3) levels)",
@@ -613,35 +610,87 @@ static const struct rd_kafka_property rd_kafka_properties[] = {
           "`SSL_CTX_set1_sigalgs_list(3)`. OpenSSL >= 1.0.2 required."
         },
 #endif
-	{ _RK_GLOBAL, "ssl.key.location", _RK_C_STR,
-	  _RK(ssl.key_location),
-	  "Path to client's private key (PEM) used for authentication."
-	},
-	{ _RK_GLOBAL, "ssl.key.password", _RK_C_STR,
-	  _RK(ssl.key_password),
-	  "Private key passphrase"
-	},
-	{ _RK_GLOBAL, "ssl.certificate.location", _RK_C_STR,
-	  _RK(ssl.cert_location),
-	  "Path to client's public key (PEM) used for authentication."
-	},
-	{ _RK_GLOBAL|_RK_MED, "ssl.ca.location", _RK_C_STR,
-	  _RK(ssl.ca_location),
-	  "File or directory path to CA certificate(s) for verifying "
-	  "the broker's key."
-	},
-	{ _RK_GLOBAL, "ssl.crl.location", _RK_C_STR,
-	  _RK(ssl.crl_location),
-	  "Path to CRL for verifying broker's certificate validity."
-	},
-	{ _RK_GLOBAL, "ssl.keystore.location", _RK_C_STR,
-	_RK(ssl.keystore_location),
-	"Path to client's keystore (PKCS#12) used for authentication."
-	},
-	{ _RK_GLOBAL, "ssl.keystore.password", _RK_C_STR,
-	_RK(ssl.keystore_password),
-	"Client's keystore (PKCS#12) password."
-	},
+        { _RK_GLOBAL, "ssl.key.location", _RK_C_STR,
+          _RK(ssl.key_location),
+          "Path to client's private key (PEM) used for authentication."
+        },
+        { _RK_GLOBAL|_RK_SENSITIVE, "ssl.key.password", _RK_C_STR,
+          _RK(ssl.key_password),
+          "Private key passphrase (for use with `ssl.key.location` "
+          "and `set_ssl_cert()`)"
+        },
+        { _RK_GLOBAL|_RK_SENSITIVE, "ssl.key.pem", _RK_C_STR,
+          _RK(ssl.key_pem),
+          "Client's private key string (PEM format) used for authentication."
+        },
+        { _RK_GLOBAL, "ssl_key", _RK_C_INTERNAL,
+          _RK(ssl.key),
+          "Client's private key as set by rd_kafka_conf_set_ssl_cert()",
+          .dtor = rd_kafka_conf_cert_dtor,
+          .copy = rd_kafka_conf_cert_copy
+        },
+        { _RK_GLOBAL, "ssl.certificate.location", _RK_C_STR,
+          _RK(ssl.cert_location),
+          "Path to client's public key (PEM) used for authentication."
+        },
+        { _RK_GLOBAL, "ssl.certificate.pem", _RK_C_STR,
+          _RK(ssl.cert_pem),
+          "Client's public key string (PEM format) used for authentication."
+        },
+        { _RK_GLOBAL, "ssl_certificate", _RK_C_INTERNAL,
+          _RK(ssl.key),
+          "Client's public key as set by rd_kafka_conf_set_ssl_cert()",
+          .dtor = rd_kafka_conf_cert_dtor,
+          .copy = rd_kafka_conf_cert_copy
+        },
+
+        { _RK_GLOBAL, "ssl.ca.location", _RK_C_STR,
+          _RK(ssl.ca_location),
+          "File or directory path to CA certificate(s) for verifying "
+          "the broker's key."
+        },
+        { _RK_GLOBAL, "ssl_ca", _RK_C_INTERNAL,
+          _RK(ssl.ca),
+          "CA certificate as set by rd_kafka_conf_set_ssl_cert()",
+          .dtor = rd_kafka_conf_cert_dtor,
+          .copy = rd_kafka_conf_cert_copy
+        },
+        { _RK_GLOBAL, "ssl.crl.location", _RK_C_STR,
+          _RK(ssl.crl_location),
+          "Path to CRL for verifying broker's certificate validity."
+        },
+        { _RK_GLOBAL, "ssl.keystore.location", _RK_C_STR,
+          _RK(ssl.keystore_location),
+          "Path to client's keystore (PKCS#12) used for authentication."
+        },
+        { _RK_GLOBAL|_RK_SENSITIVE, "ssl.keystore.password", _RK_C_STR,
+          _RK(ssl.keystore_password),
+          "Client's keystore (PKCS#12) password."
+        },
+        { _RK_GLOBAL, "enable.ssl.certificate.verification", _RK_C_BOOL,
+          _RK(ssl.enable_verify),
+          "Enable OpenSSL's builtin broker (server) certificate verification. "
+          "This verification can be extended by the application by "
+          "implementing a certificate_verify_cb.",
+          0, 1, 1
+        },
+        { _RK_GLOBAL, "ssl.endpoint.identification.algorithm", _RK_C_S2I,
+          _RK(ssl.endpoint_identification),
+          "Endpoint identification algorithm to validate broker "
+          "hostname using broker certificate. "
+          "https - Server (broker) hostname verification as "
+          "specified in RFC2818. "
+          "none - No endpoint verification.",
+          .vdef = RD_KAFKA_SSL_ENDPOINT_ID_NONE,
+          .s2i = {
+                        { RD_KAFKA_SSL_ENDPOINT_ID_NONE, "none" },
+                        { RD_KAFKA_SSL_ENDPOINT_ID_HTTPS, "https" }
+                }
+        },
+        { _RK_GLOBAL, "ssl.certificate.verify_cb", _RK_C_PTR,
+          _RK(ssl.cert_verify_cb),
+          "Callback to verify the broker certificate chain."
+        },
 #endif /* WITH_SSL */
 
         /* Point user in the right direction if they try to apply
@@ -679,19 +728,25 @@ static const struct rd_kafka_property rd_kafka_properties[] = {
           "(Not supported on Windows, will use the logon user's principal).",
 	  .sdef = "kafkaclient" },
 #ifndef _MSC_VER
-	{ _RK_GLOBAL, "sasl.kerberos.kinit.cmd", _RK_C_STR,
-	  _RK(sasl.kinit_cmd),
-	  "Full kerberos kinit command string, %{config.prop.name} is replaced "
-	  "by corresponding config object value, %{broker.name} returns the "
-	  "broker's hostname.",
-	  .sdef = "kinit -S \"%{sasl.kerberos.service.name}/%{broker.name}\" "
-	  "-k -t \"%{sasl.kerberos.keytab}\" %{sasl.kerberos.principal}" },
-	{ _RK_GLOBAL, "sasl.kerberos.keytab", _RK_C_STR,
-	  _RK(sasl.keytab),
-	  "Path to Kerberos keytab file. Uses system default if not set."
-	  "**NOTE**: This is not automatically used but must be added to the "
-	  "template in sasl.kerberos.kinit.cmd as "
-	  "` ... -t %{sasl.kerberos.keytab}`." },
+        { _RK_GLOBAL, "sasl.kerberos.kinit.cmd", _RK_C_STR,
+          _RK(sasl.kinit_cmd),
+          "Shell command to refresh or acquire the client's Kerberos ticket. "
+          "This command is executed on client creation and every "
+          "sasl.kerberos.min.time.before.relogin. "
+          "%{config.prop.name} is replaced by corresponding config "
+          "object value.",
+          .sdef =
+          /* First attempt to refresh, else acquire. */
+          "kinit -R -t \"%{sasl.kerberos.keytab}\" "
+          "-k %{sasl.kerberos.principal} || "
+          "kinit -t \"%{sasl.kerberos.keytab}\" -k %{sasl.kerberos.principal}"
+        },
+        { _RK_GLOBAL, "sasl.kerberos.keytab", _RK_C_STR,
+          _RK(sasl.keytab),
+          "Path to Kerberos keytab file. "
+          "This configuration property is only used as a variable in "
+          "`sasl.kerberos.kinit.cmd` as "
+          "` ... -t \"%{sasl.kerberos.keytab}\"`." },
 	{ _RK_GLOBAL, "sasl.kerberos.min.time.before.relogin", _RK_C_INT,
 	  _RK(sasl.relogin_min_time),
 	  "Minimum time in milliseconds between key refresh attempts.",
@@ -721,6 +776,20 @@ static const struct rd_kafka_property rd_kafka_properties[] = {
           "can be communicated to the broker via "
           "`extension_<extensionname>=value`. For example: "
           "`principal=admin extension_traceId=123`" },
+        { _RK_GLOBAL, "enable.sasl.oauthbearer.unsecure.jwt", _RK_C_BOOL,
+          _RK(sasl.enable_oauthbearer_unsecure_jwt),
+          "Enable the builtin unsecure JWT OAUTHBEARER token handler "
+          "if no oauthbearer_refresh_cb has been set. "
+          "This builtin handler should only be used for development "
+          "or testing, and not in production.",
+          0, 1, 0 },
+        { _RK_GLOBAL, "oauthbearer_token_refresh_cb", _RK_C_PTR,
+          _RK(sasl.oauthbearer_token_refresh_cb),
+          "SASL/OAUTHBEARER token refresh callback (set with "
+          "rd_kafka_conf_set_oauthbearer_token_refresh_cb(), triggered by "
+          "rd_kafka_poll(), et.al. "
+          "This callback will be triggered when it is time to refresh "
+          "the client's OAUTHBEARER token." },
 #endif
 
 #if WITH_PLUGINS
@@ -1864,8 +1933,96 @@ rd_kafka_conf_res_t rd_kafka_topic_conf_set (rd_kafka_topic_conf_t *conf,
 }
 
 
+/**
+ * @brief Overwrites the contents of \p str up until but not including
+ *        the nul-term.
+ */
+void rd_kafka_desensitize_str (char *str) {
+        size_t len;
+        static const char redacted[] = "(REDACTED)";
+
+#ifdef _MSC_VER
+        len = strlen(str);
+        SecureZeroMemory(str, len);
+#else
+        volatile char *volatile s;
+
+        for (s = str ; *s ; s++)
+                *s = '\0';
+
+        len = (size_t)(s - str);
+#endif
+
+        if (len > sizeof(redacted))
+                memcpy(str, redacted, sizeof(redacted));
+}
+
+
+
+
+/**
+ * @brief Overwrite the value of \p prop, if sensitive.
+ */
+static RD_INLINE void
+rd_kafka_anyconf_prop_desensitize (int scope, void *conf,
+                                   const struct rd_kafka_property *prop) {
+        if (likely(!(prop->scope & _RK_SENSITIVE)))
+                return;
+
+        switch (prop->type)
+        {
+        case _RK_C_STR:
+        {
+                char **str = _RK_PTR(char **, conf, prop->offset);
+                if (*str)
+                        rd_kafka_desensitize_str(*str);
+                break;
+        }
+
+        default:
+                rd_assert(!*"BUG: Don't know how to desensitize prop type");
+                break;
+        }
+}
+
+
+/**
+ * @brief Desensitize all sensitive properties in \p conf
+ */
+static void rd_kafka_anyconf_desensitize (int scope, void *conf) {
+        const struct rd_kafka_property *prop;
+
+        for (prop = rd_kafka_properties; prop->name ; prop++) {
+                if (!(prop->scope & scope))
+                        continue;
+
+                rd_kafka_anyconf_prop_desensitize(scope, conf, prop);
+        }
+}
+
+/**
+ * @brief Overwrite the values of sensitive properties
+ */
+void rd_kafka_conf_desensitize (rd_kafka_conf_t *conf) {
+        if (conf->topic_conf)
+                rd_kafka_anyconf_desensitize(_RK_TOPIC,
+                                             conf->topic_conf);
+        rd_kafka_anyconf_desensitize(_RK_GLOBAL, conf);
+}
+
+/**
+ * @brief Overwrite the values of sensitive properties
+ */
+void rd_kafka_topic_conf_desensitize (rd_kafka_topic_conf_t *tconf) {
+        rd_kafka_anyconf_desensitize(_RK_TOPIC, tconf);
+}
+
+
 static void rd_kafka_anyconf_clear (int scope, void *conf,
 				    const struct rd_kafka_property *prop) {
+
+        rd_kafka_anyconf_prop_desensitize(scope, conf, prop);
+
 	switch (prop->type)
 	{
 	case _RK_C_STR:
@@ -2195,8 +2352,10 @@ void rd_kafka_conf_set_stats_cb (rd_kafka_conf_t *conf,
 }
 
 void rd_kafka_conf_set_oauthbearer_token_refresh_cb(rd_kafka_conf_t *conf,
-                void (*oauthbearer_token_refresh_cb) (rd_kafka_t *rk,
-                void *opaque)) {
+                void (*oauthbearer_token_refresh_cb) (
+                        rd_kafka_t *rk,
+                        const char *oauthbearer_config,
+                        void *opaque)) {
 #if WITH_SASL_OAUTHBEARER
         rd_kafka_anyconf_set_internal(_RK_GLOBAL, conf,
                 "oauthbearer_token_refresh_cb", oauthbearer_token_refresh_cb);
@@ -2240,6 +2399,29 @@ void rd_kafka_conf_set_open_cb (rd_kafka_conf_t *conf,
         rd_kafka_anyconf_set_internal(_RK_GLOBAL, conf, "open_cb", open_cb);
 }
 #endif
+
+
+rd_kafka_conf_res_t
+rd_kafka_conf_set_ssl_cert_verify_cb (
+        rd_kafka_conf_t *conf,
+        int (*ssl_cert_verify_cb) (rd_kafka_t *rk,
+                                   const char *broker_name,
+                                   int32_t broker_id,
+                                   int *x509_set_error,
+                                   int depth,
+                                   const char *buf, size_t size,
+                                   char *errstr, size_t errstr_size,
+                                   void *opaque)) {
+#if !WITH_SSL
+        return RD_KAFKA_CONF_INVALID;
+#else
+        rd_kafka_anyconf_set_internal(_RK_GLOBAL, conf,
+                                      "ssl.certificate.verify_cb",
+                                      ssl_cert_verify_cb);
+        return RD_KAFKA_CONF_OK;
+#endif
+}
+
 
 void rd_kafka_conf_set_opaque (rd_kafka_conf_t *conf, void *opaque) {
         rd_kafka_anyconf_set_internal(_RK_GLOBAL, conf, "opaque", opaque);
@@ -2922,6 +3104,16 @@ const char *rd_kafka_conf_finalize (rd_kafka_type_t cltype,
         if (conf->ssl.keystore_location && !conf->ssl.keystore_password)
                 return "`ssl.keystore.password` is mandatory when "
                         "`ssl.keystore.location` is set";
+        if (conf->ssl.ca && conf->ssl.ca_location)
+                return "`ssl.ca.location`, and memory-based "
+                       "set_ssl_cert(CERT_CA) are mutually exclusive.";
+#endif
+
+#if WITH_SASL_OAUTHBEARER
+        if (conf->sasl.enable_oauthbearer_unsecure_jwt &&
+            conf->sasl.oauthbearer_token_refresh_cb)
+                return "`enable.sasl.oauthbearer.unsecure.jwt` and "
+                        "`oauthbearer_token_refresh_cb` are mutually exclusive";
 #endif
 
         if (cltype == RD_KAFKA_CONSUMER) {
