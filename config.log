@@ -1,0 +1,375 @@
+# configure exec: ./configure --prefix=install --bindir=/Stratusoft/ARI_Techsupport/work_dir/Kerberos/src/clients/kinit --libdir=/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib --libdir=/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2
+# On Wed Jun 12 07:21:33 edt 2019
+DBG 67194267: Setting distro (distro) status to ok (action ignore)
+DBG 67194267: ccenv: WITH_CC:  --version failed: mklove/modules/configure.base: line 1711: --version: command not found
+DBG 67194267: Setting ccenv (ccenv) status to failed (action cont)
+DBG 67194267: Check ccenv (WITH_CC, action cont (originally cont)) failed: command ' --version' failed:
+mklove/modules/configure.base: line 1711: --version: command not found
+DBG 67194267: Setting gcc (gcc) status to ok (action cont)
+DBG 67194267: cxxenv: WITH_CXX:  --version failed: mklove/modules/configure.base: line 1711: --version: command not found
+DBG 67194267: Setting cxxenv (cxxenv) status to failed (action cont)
+DBG 67194267: Check cxxenv (WITH_CXX, action cont (originally cont)) failed: command ' --version' failed:
+mklove/modules/configure.base: line 1711: --version: command not found
+DBG 67194267: Setting gxx (gxx) status to ok (action cont)
+DBG 67194267: Setting ld (ld) status to ok (action disable)
+DBG 67194267: Setting nm (nm) status to ok (action disable)
+DBG 67194267: Setting objdump (objdump) status to ok (action disable)
+DBG 67194267: Setting strip (strip) status to ok (action disable)
+DBG 67194267: pkgconfig: WITH_PKGCONFIG: pkg-config --version failed: mklove/modules/configure.base: line 1711: pkg-config: command not found
+DBG 67194267: Setting pkgconfig (pkgconfig) status to failed (action cont)
+DBG 67194267: Check pkgconfig (WITH_PKGCONFIG, action cont (originally cont)) failed: command 'pkg-config --version' failed:
+mklove/modules/configure.base: line 1711: pkg-config: command not found
+DBG 67194267: Setting install (install) status to ok (action cont)
+DBG 67194267: Compile check PIC (HAVE_PIC) (sub=0): gcc  -g -O2 -Wall -Werror _mkltmpaPv0tD.c -o _mkltmpaPv0tD.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -fPIC
+DBG 67194267: Setting PIC (PIC) status to ok (action disable)
+DBG 67194267: Compile check gnulib (WITH_GNULD) (sub=0): gcc  -g -O2 -fPIC -Wall -Werror _mkltmpHyFq0U.c -o _mkltmpHyFq0U.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -shared -Wl,-soname,mkltest.0
+DBG 67194267: Setting gnulib (gnulib) status to ok (action cont)
+DBG 67194267: Compile check ldsflagvs () (sub=0): gcc  -g -O2 -fPIC -Wall -Werror _mkltmpId5KEG.c -o _mkltmpId5KEG.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -shared -Wl,--version-script=_mkltmp7FzqY3
+DBG 67194267: Setting ldsflagvs (ldsflagvs) status to ok (action cont)
+DBG 67194267: Compile check __atomic_32 (HAVE_ATOMICS_32) (sub=0): gcc  -g -O2 -fPIC -Wall -Werror _mkltmpk03uXK.c -o _mkltmpk03uXK.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for __atomic_32 (HAVE_ATOMICS_32) failed: gcc  -g -O2 -fPIC -Wall -Werror _mkltmpk03uXK.c -o _mkltmpk03uXK.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmpk03uXK.c: In function `foo':
+_mkltmpk03uXK.c:4: warning: implicit declaration of function `__atomic_add_fetch'
+_mkltmpk03uXK.c:4: error: `__ATOMIC_SEQ_CST' undeclared (first use in this function)
+_mkltmpk03uXK.c:4: error: (Each undeclared identifier is reported only once
+_mkltmpk03uXK.c:4: error: for each function it appears in.)
+DBG 67194267: Setting __atomic_32 (__atomic_32) status to failed (action cont)
+DBG 67194267: Check __atomic_32 (HAVE_ATOMICS_32, action cont (originally cont)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Werror _mkltmpk03uXK.c -o _mkltmpk03uXK.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmpk03uXK.c: In function `foo':
+_mkltmpk03uXK.c:4: warning: implicit declaration of function `__atomic_add_fetch'
+_mkltmpk03uXK.c:4: error: `__ATOMIC_SEQ_CST' undeclared (first use in this function)
+_mkltmpk03uXK.c:4: error: (Each undeclared identifier is reported only once
+_mkltmpk03uXK.c:4: error: for each function it appears in.)
+source: 
+#include <inttypes.h>
+int32_t foo (int32_t i) {
+  return __atomic_add_fetch(&i, 1, __ATOMIC_SEQ_CST);
+}
+DBG 67194267: Compile check __atomic_32_lib (HAVE_ATOMICS_32) (sub=0): gcc  -g -O2 -fPIC -Wall -Werror _mkltmpCmm923.c -o _mkltmpCmm923.c.o -latomic -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for __atomic_32_lib (HAVE_ATOMICS_32) failed: gcc  -g -O2 -fPIC -Wall -Werror _mkltmpCmm923.c -o _mkltmpCmm923.c.o -latomic -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmpCmm923.c: In function `foo':
+_mkltmpCmm923.c:4: warning: implicit declaration of function `__atomic_add_fetch'
+_mkltmpCmm923.c:4: error: `__ATOMIC_SEQ_CST' undeclared (first use in this function)
+_mkltmpCmm923.c:4: error: (Each undeclared identifier is reported only once
+_mkltmpCmm923.c:4: error: for each function it appears in.)
+DBG 67194267: Setting __atomic_32_lib (__atomic_32_lib) status to failed (action cont)
+DBG 67194267: Check __atomic_32_lib (HAVE_ATOMICS_32, action cont (originally cont)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Werror _mkltmpCmm923.c -o _mkltmpCmm923.c.o -latomic -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmpCmm923.c: In function `foo':
+_mkltmpCmm923.c:4: warning: implicit declaration of function `__atomic_add_fetch'
+_mkltmpCmm923.c:4: error: `__ATOMIC_SEQ_CST' undeclared (first use in this function)
+_mkltmpCmm923.c:4: error: (Each undeclared identifier is reported only once
+_mkltmpCmm923.c:4: error: for each function it appears in.)
+source: 
+#include <inttypes.h>
+int32_t foo (int32_t i) {
+  return __atomic_add_fetch(&i, 1, __ATOMIC_SEQ_CST);
+}
+DBG 67194267: Compile check __sync_32 (HAVE_ATOMICS_32) (sub=0): gcc  -g -O2 -fPIC -Wall -Werror _mkltmp8hmofo.c -o _mkltmp8hmofo.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for __sync_32 (HAVE_ATOMICS_32) failed: gcc  -g -O2 -fPIC -Wall -Werror _mkltmp8hmofo.c -o _mkltmp8hmofo.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmp8hmofo.c: In function `foo':
+_mkltmp8hmofo.c:4: warning: implicit declaration of function `__sync_add_and_fetch'
+DBG 67194267: Setting __sync_32 (__sync_32) status to failed (action disable)
+DBG 67194267: Check __sync_32 (HAVE_ATOMICS_32, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Werror _mkltmp8hmofo.c -o _mkltmp8hmofo.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmp8hmofo.c: In function `foo':
+_mkltmp8hmofo.c:4: warning: implicit declaration of function `__sync_add_and_fetch'
+source: 
+#include <inttypes.h>
+int32_t foo (int32_t i) {
+  return __sync_add_and_fetch(&i, 1);
+}
+DBG 67194267: Compile check __atomic_64 (HAVE_ATOMICS_64) (sub=0): gcc  -g -O2 -fPIC -Wall -Werror _mkltmp98Lw7Y.c -o _mkltmp98Lw7Y.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for __atomic_64 (HAVE_ATOMICS_64) failed: gcc  -g -O2 -fPIC -Wall -Werror _mkltmp98Lw7Y.c -o _mkltmp98Lw7Y.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmp98Lw7Y.c: In function `foo':
+_mkltmp98Lw7Y.c:4: warning: implicit declaration of function `__atomic_add_fetch'
+_mkltmp98Lw7Y.c:4: error: `__ATOMIC_SEQ_CST' undeclared (first use in this function)
+_mkltmp98Lw7Y.c:4: error: (Each undeclared identifier is reported only once
+_mkltmp98Lw7Y.c:4: error: for each function it appears in.)
+DBG 67194267: Setting __atomic_64 (__atomic_64) status to failed (action cont)
+DBG 67194267: Check __atomic_64 (HAVE_ATOMICS_64, action cont (originally cont)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Werror _mkltmp98Lw7Y.c -o _mkltmp98Lw7Y.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmp98Lw7Y.c: In function `foo':
+_mkltmp98Lw7Y.c:4: warning: implicit declaration of function `__atomic_add_fetch'
+_mkltmp98Lw7Y.c:4: error: `__ATOMIC_SEQ_CST' undeclared (first use in this function)
+_mkltmp98Lw7Y.c:4: error: (Each undeclared identifier is reported only once
+_mkltmp98Lw7Y.c:4: error: for each function it appears in.)
+source: 
+#include <inttypes.h>
+int64_t foo (int64_t i) {
+  return __atomic_add_fetch(&i, 1, __ATOMIC_SEQ_CST);
+}
+DBG 67194267: Compile check __atomic_64_lib (HAVE_ATOMICS_64) (sub=0): gcc  -g -O2 -fPIC -Wall -Werror _mkltmp7W7Djz.c -o _mkltmp7W7Djz.c.o -latomic -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for __atomic_64_lib (HAVE_ATOMICS_64) failed: gcc  -g -O2 -fPIC -Wall -Werror _mkltmp7W7Djz.c -o _mkltmp7W7Djz.c.o -latomic -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmp7W7Djz.c: In function `foo':
+_mkltmp7W7Djz.c:4: warning: implicit declaration of function `__atomic_add_fetch'
+_mkltmp7W7Djz.c:4: error: `__ATOMIC_SEQ_CST' undeclared (first use in this function)
+_mkltmp7W7Djz.c:4: error: (Each undeclared identifier is reported only once
+_mkltmp7W7Djz.c:4: error: for each function it appears in.)
+DBG 67194267: Setting __atomic_64_lib (__atomic_64_lib) status to failed (action cont)
+DBG 67194267: Check __atomic_64_lib (HAVE_ATOMICS_64, action cont (originally cont)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Werror _mkltmp7W7Djz.c -o _mkltmp7W7Djz.c.o -latomic -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmp7W7Djz.c: In function `foo':
+_mkltmp7W7Djz.c:4: warning: implicit declaration of function `__atomic_add_fetch'
+_mkltmp7W7Djz.c:4: error: `__ATOMIC_SEQ_CST' undeclared (first use in this function)
+_mkltmp7W7Djz.c:4: error: (Each undeclared identifier is reported only once
+_mkltmp7W7Djz.c:4: error: for each function it appears in.)
+source: 
+#include <inttypes.h>
+int64_t foo (int64_t i) {
+  return __atomic_add_fetch(&i, 1, __ATOMIC_SEQ_CST);
+}
+DBG 67194267: Compile check __sync_64 (HAVE_ATOMICS_64) (sub=0): gcc  -g -O2 -fPIC -Wall -Werror _mkltmpjohCFl.c -o _mkltmpjohCFl.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for __sync_64 (HAVE_ATOMICS_64) failed: gcc  -g -O2 -fPIC -Wall -Werror _mkltmpjohCFl.c -o _mkltmpjohCFl.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmpjohCFl.c: In function `foo':
+_mkltmpjohCFl.c:4: warning: implicit declaration of function `__sync_add_and_fetch'
+DBG 67194267: Setting __sync_64 (__sync_64) status to failed (action disable)
+DBG 67194267: Check __sync_64 (HAVE_ATOMICS_64, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Werror _mkltmpjohCFl.c -o _mkltmpjohCFl.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmpjohCFl.c: In function `foo':
+_mkltmpjohCFl.c:4: warning: implicit declaration of function `__sync_add_and_fetch'
+source: 
+#include <inttypes.h>
+int64_t foo (int64_t i) {
+  return __sync_add_and_fetch(&i, 1);
+}
+DBG 67194267: Compile check socket () (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpYeeylQ.c -o _mkltmpYeeylQ.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: Setting socket (socket) status to ok (action cont)
+DBG 67194267: Setting parseversion (parseversion) status to ok (action cont)
+DBG 67194267: librt: Check for static library (libs -lrt, arfile variable STATIC_LIB_librt=, static filenames )
+DBG 67194267: Compile check librt () (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpX2YqSN.c -o _mkltmpX2YqSN.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lrt
+DBG 67194267: compile check for librt () failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpX2YqSN.c -o _mkltmpX2YqSN.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lrt: bind: Object not found. rt
+
+bind: Binding had errors.
+DBG 67194267: Setting librt (librt) status to failed (action cont)
+DBG 67194267: Check librt (, action cont (originally cont)) failed: compile check failed:
+CC: CC
+flags: -lrt
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpX2YqSN.c -o _mkltmpX2YqSN.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lrt:
+bind: Object not found. rt
+
+bind: Binding had errors.
+source: 
+DBG 67194267: libpthread: Check for static library (libs -lpthread, arfile variable STATIC_LIB_libpthread=, static filenames )
+DBG 67194267: Compile check libpthread () (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpBx5beb.c -o _mkltmpBx5beb.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lpthread
+DBG 67194267: Setting libpthread (libpthread) status to ok (action fail)
+DBG 67194267: libpthread: from lib_check: LIBS: prepend -lpthread
+DBG 67194267: c11threads: Check for static library (libs -lpthread, arfile variable STATIC_LIB_c11threads=, static filenames )
+DBG 67194267: Compile check c11threads (WITH_C11THREADS) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpWECB2b.c -o _mkltmpWECB2b.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lpthread
+DBG 67194267: compile check for c11threads (WITH_C11THREADS) failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpWECB2b.c -o _mkltmpWECB2b.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lpthread: _mkltmpWECB2b.c:2:21: threads.h: No such file or directory.
+_mkltmpWECB2b.c: In function `foo':
+_mkltmpWECB2b.c:11: error: `thrd_t' undeclared (first use in this function)
+_mkltmpWECB2b.c:11: error: (Each undeclared identifier is reported only once
+_mkltmpWECB2b.c:11: error: for each function it appears in.)
+_mkltmpWECB2b.c:11: error: syntax error before "thr"
+_mkltmpWECB2b.c:13: warning: implicit declaration of function `thrd_create'
+_mkltmpWECB2b.c:13: error: `thr' undeclared (first use in this function)
+_mkltmpWECB2b.c:13: error: `thrd_success' undeclared (first use in this function)
+DBG 67194267: Setting c11threads (c11threads) status to failed (action disable)
+DBG 67194267: Check c11threads (WITH_C11THREADS, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: -lpthread
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpWECB2b.c -o _mkltmpWECB2b.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lpthread:
+_mkltmpWECB2b.c:2:21: threads.h: No such file or directory.
+_mkltmpWECB2b.c: In function `foo':
+_mkltmpWECB2b.c:11: error: `thrd_t' undeclared (first use in this function)
+_mkltmpWECB2b.c:11: error: (Each undeclared identifier is reported only once
+_mkltmpWECB2b.c:11: error: for each function it appears in.)
+_mkltmpWECB2b.c:11: error: syntax error before "thr"
+_mkltmpWECB2b.c:13: warning: implicit declaration of function `thrd_create'
+_mkltmpWECB2b.c:13: error: `thr' undeclared (first use in this function)
+_mkltmpWECB2b.c:13: error: `thrd_success' undeclared (first use in this function)
+source: 
+#include <threads.h>
+
+
+static int start_func (void *arg) {
+   int iarg = *(int *)arg;
+   return iarg;
+}
+
+void foo (void) {
+    thrd_t thr;
+    int arg = 1;
+    if (thrd_create(&thr, start_func, (void *)&arg) != thrd_success) {
+      ;
+    }
+}
+
+DBG 67194267: libdl: Check for static library (libs -ldl, arfile variable STATIC_LIB_libdl=, static filenames )
+DBG 67194267: Compile check libdl (WITH_LIBDL) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpip1fQF.c -o _mkltmpip1fQF.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -ldl
+DBG 67194267: Setting libdl (libdl) status to ok (action disable)
+DBG 67194267: libdl: from lib_check: LIBS: prepend -ldl
+DBG 67194267: zlib: Check for static library (libs -lz, arfile variable STATIC_LIB_zlib=, static filenames libz.a)
+DBG 67194267: Compile check zlib (WITH_ZLIB) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp3DOmMe.c -o _mkltmp3DOmMe.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lz
+DBG 67194267: Setting zlib (zlib) status to ok (action disable)
+DBG 67194267: zlib: from lib_check: LIBS: prepend -lz
+DBG 67194267: libcrypto: Check for static library (libs -lcrypto, arfile variable STATIC_LIB_libcrypto=, static filenames libcrypto.a)
+DBG 67194267: Compile check libcrypto () (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp0tjPtX.c -o _mkltmp0tjPtX.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lcrypto
+DBG 67194267: compile check for libcrypto () failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp0tjPtX.c -o _mkltmp0tjPtX.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lcrypto: _mkltmp0tjPtX.c:5:2: #error "Requires OpenSSL version >= v1.0.2"
+DBG 67194267: Setting libcrypto (libcrypto) status to failed (action disable)
+DBG 67194267: Check libcrypto (, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: -lcrypto
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp0tjPtX.c -o _mkltmp0tjPtX.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lcrypto:
+_mkltmp0tjPtX.c:5:2: #error "Requires OpenSSL version >= v1.0.2"
+source: 
+#include <openssl/ssl.h>
+#include <openssl/evp.h>
+#if OPENSSL_VERSION_NUMBER < 0x1000200fL
+#error "Requires OpenSSL version >= v1.0.2"
+#endif
+DBG 67194267: libsasl2: Check for static library (libs -lsasl2, arfile variable STATIC_LIB_libsasl2=, static filenames )
+DBG 67194267: Compile check libsasl2 (WITH_SASL_CYRUS) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpExFyiS.c -o _mkltmpExFyiS.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lsasl2
+DBG 67194267: Setting libsasl2 (libsasl2) status to ok (action disable)
+DBG 67194267: libsasl2: from lib_check: LIBS: prepend -lsasl2
+DBG 67194267: libzstd: Check for static library (libs -lzstd, arfile variable STATIC_LIB_libzstd=, static filenames libzstd.a)
+DBG 67194267: Compile check libzstd (WITH_ZSTD) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmplQDU0q.c -o _mkltmplQDU0q.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lzstd
+DBG 67194267: compile check for libzstd (WITH_ZSTD) failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmplQDU0q.c -o _mkltmplQDU0q.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lzstd: _mkltmplQDU0q.c:2:18: zstd.h: No such file or directory.
+_mkltmplQDU0q.c:3:25: zstd_errors.h: No such file or directory.
+_mkltmplQDU0q.c: In function `foo':
+_mkltmplQDU0q.c:6: warning: implicit declaration of function `ZSTD_getFrameContentSize'
+_mkltmplQDU0q.c:6: error: `NULL' undeclared (first use in this function)
+_mkltmplQDU0q.c:6: error: (Each undeclared identifier is reported only once
+_mkltmplQDU0q.c:6: error: for each function it appears in.)
+DBG 67194267: Setting libzstd (libzstd) status to failed (action disable)
+DBG 67194267: Check libzstd (WITH_ZSTD, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: -lzstd
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmplQDU0q.c -o _mkltmplQDU0q.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lzstd:
+_mkltmplQDU0q.c:2:18: zstd.h: No such file or directory.
+_mkltmplQDU0q.c:3:25: zstd_errors.h: No such file or directory.
+_mkltmplQDU0q.c: In function `foo':
+_mkltmplQDU0q.c:6: warning: implicit declaration of function `ZSTD_getFrameContentSize'
+_mkltmplQDU0q.c:6: error: `NULL' undeclared (first use in this function)
+_mkltmplQDU0q.c:6: error: (Each undeclared identifier is reported only once
+_mkltmplQDU0q.c:6: error: for each function it appears in.)
+source: 
+#include <zstd.h>
+#include <zstd_errors.h>
+
+void foo (void) {
+     ZSTD_getFrameContentSize(NULL, 0);
+}
+
+DBG 67194267: libm: Check for static library (libs -lm, arfile variable STATIC_LIB_libm=, static filenames )
+DBG 67194267: Compile check libm () (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp5jas7T.c -o _mkltmp5jas7T.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -lm
+DBG 67194267: Setting libm (libm) status to ok (action disable)
+DBG 67194267: libm: from lib_check: LIBS: prepend -lm
+DBG 67194267: liblz4: Check for static library (libs -llz4, arfile variable STATIC_LIB_liblz4=, static filenames liblz4.a)
+DBG 67194267: Compile check liblz4 (WITH_LZ4_EXT) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpVDMWcx.c -o _mkltmpVDMWcx.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -llz4
+DBG 67194267: compile check for liblz4 (WITH_LZ4_EXT) failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpVDMWcx.c -o _mkltmpVDMWcx.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -llz4: _mkltmpVDMWcx.c:1:22: lz4frame.h: No such file or directory.
+DBG 67194267: Setting liblz4 (liblz4) status to failed (action disable)
+DBG 67194267: Check liblz4 (WITH_LZ4_EXT, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: -llz4
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpVDMWcx.c -o _mkltmpVDMWcx.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -llz4:
+_mkltmpVDMWcx.c:1:22: lz4frame.h: No such file or directory.
+source: #include <lz4frame.h>
+DBG 67194267: Compile check rapidjson (WITH_RAPIDJSON) (sub=0): g++  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpwikzDt.cpp -o _mkltmpwikzDt.cpp.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for rapidjson (WITH_RAPIDJSON) failed: g++  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpwikzDt.cpp -o _mkltmpwikzDt.cpp.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmpwikzDt.cpp:1:30: rapidjson/schema.h: No such file or directory.
+DBG 67194267: Setting rapidjson (rapidjson) status to failed (action disable)
+DBG 67194267: Check rapidjson (WITH_RAPIDJSON, action disable (originally disable)) failed: compile check failed:
+CC: CXX
+flags: 
+g++  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpwikzDt.cpp -o _mkltmpwikzDt.cpp.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmpwikzDt.cpp:1:30: rapidjson/schema.h: No such file or directory.
+source: #include <rapidjson/schema.h>
+DBG 67194267: Compile check crc32chw (WITH_CRC32C_HW) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp4xvnWE.c -o _mkltmp4xvnWE.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for crc32chw (WITH_CRC32C_HW) failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp4xvnWE.c -o _mkltmp4xvnWE.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmp4xvnWE.c: In function `foo':
+_mkltmp4xvnWE.c:11: error: PIC register `%ebx' clobbered in `asm'
+DBG 67194267: Setting crc32chw (crc32chw) status to failed (action disable)
+DBG 67194267: Check crc32chw (WITH_CRC32C_HW, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp4xvnWE.c -o _mkltmp4xvnWE.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmp4xvnWE.c: In function `foo':
+_mkltmp4xvnWE.c:11: error: PIC register `%ebx' clobbered in `asm'
+source: 
+#include <inttypes.h>
+#include <stdio.h>
+#define LONGx1 "8192"
+#define LONGx2 "16384"
+void foo (void) {
+   const char *n = "abcdefghijklmnopqrstuvwxyz0123456789";
+   uint64_t c0 = 0, c1 = 1, c2 = 2;
+   uint64_t s;
+   uint32_t eax = 1, ecx;
+   __asm__("cpuid"
+           : "=c"(ecx)
+           : "a"(eax)
+           : "%ebx", "%edx");
+   __asm__("crc32b\t" "(%1), %0"
+           : "=r"(c0)
+           : "r"(n), "0"(c0));
+   __asm__("crc32q\t" "(%3), %0\n\t"
+           "crc32q\t" LONGx1 "(%3), %1\n\t"
+           "crc32q\t" LONGx2 "(%3), %2"
+           : "=r"(c0), "=r"(c1), "=r"(c2)
+           : "r"(n), "0"(c0), "1"(c1), "2"(c2));
+  s = c0 + c1 + c2;
+  printf("avoiding unused code removal by printing %d, %d, %d\n", (int)s, (int)eax, (int)ecx);
+}
+
+DBG 67194267: Compile check regex (HAVE_REGEX) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpoeFS3k.c -o _mkltmpoeFS3k.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: Setting regex (regex) status to ok (action disable)
+DBG 67194267: Compile check strndup (HAVE_STRNDUP) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp5KFBRR.c -o _mkltmp5KFBRR.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for strndup (HAVE_STRNDUP) failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp5KFBRR.c -o _mkltmp5KFBRR.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmp5KFBRR.c: In function `foo':
+_mkltmp5KFBRR.c:3: warning: implicit declaration of function `strndup'
+DBG 67194267: Setting strndup (strndup) status to failed (action disable)
+DBG 67194267: Check strndup (HAVE_STRNDUP, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmp5KFBRR.c -o _mkltmp5KFBRR.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmp5KFBRR.c: In function `foo':
+_mkltmp5KFBRR.c:3: warning: implicit declaration of function `strndup'
+source: #include <string.h>
+int foo (void) {
+   return strndup("hi", 2) ? 0 : 1;
+}
+DBG 67194267: Compile check strerror_r (HAVE_STRERROR_R) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpSKVdt4.c -o _mkltmpSKVdt4.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 
+DBG 67194267: compile check for strerror_r (HAVE_STRERROR_R) failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpSKVdt4.c -o _mkltmpSKVdt4.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 : _mkltmpSKVdt4.c: In function `foo':
+_mkltmpSKVdt4.c:4: warning: implicit declaration of function `strerror_r'
+DBG 67194267: Setting strerror_r (strerror_r) status to failed (action disable)
+DBG 67194267: Check strerror_r (HAVE_STRERROR_R, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: 
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpSKVdt4.c -o _mkltmpSKVdt4.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 :
+_mkltmpSKVdt4.c: In function `foo':
+_mkltmpSKVdt4.c:4: warning: implicit declaration of function `strerror_r'
+source: #include <string.h>
+const char *foo (void) {
+   static char buf[64];
+   strerror_r(1, buf, sizeof(buf));
+   return buf;
+}
+DBG 67194267: Compile check pthread_setname_gnu (HAVE_PTHREAD_SETNAME_GNU) (sub=0): gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpn6YK2d.c -o _mkltmpn6YK2d.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -D_GNU_SOURCE -lpthread
+DBG 67194267: compile check for pthread_setname_gnu (HAVE_PTHREAD_SETNAME_GNU) failed: gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpn6YK2d.c -o _mkltmpn6YK2d.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -D_GNU_SOURCE -lpthread: _mkltmpn6YK2d.c: In function `foo':
+_mkltmpn6YK2d.c:5: warning: implicit declaration of function `pthread_setname_np'
+DBG 67194267: Setting pthread_setname_gnu (pthread_setname_gnu) status to failed (action disable)
+DBG 67194267: Check pthread_setname_gnu (HAVE_PTHREAD_SETNAME_GNU, action disable (originally disable)) failed: compile check failed:
+CC: CC
+flags: -D_GNU_SOURCE -lpthread
+gcc  -g -O2 -fPIC -Wall -Wsign-compare -Wfloat-equal -Wpointer-arith -Wcast-align -Wall -Werror _mkltmpn6YK2d.c -o _mkltmpn6YK2d.c.o  -L/Stratusoft/ARI_Techsupport/work_dir/cyrus/cyrus-sasl-2.1.27/install/lib/sasl2 -D_GNU_SOURCE -lpthread:
+_mkltmpn6YK2d.c: In function `foo':
+_mkltmpn6YK2d.c:5: warning: implicit declaration of function `pthread_setname_np'
+source: 
+#include <pthread.h>
+
+void foo (void) {
+  pthread_setname_np(pthread_self(), "abc");
+}
+
+DBG 67194267: Setting nm (nm) status to ok (action cont)
+DBG 67194267: python: HAVE_PYTHON: python -V failed: mklove/modules/configure.base: line 1711: python: command not found
+DBG 67194267: Setting python (python) status to failed (action disable)
+DBG 67194267: Check python (HAVE_PYTHON, action disable (originally disable)) failed: command 'python -V' failed:
+mklove/modules/configure.base: line 1711: python: command not found
+disabling linker-script since python is not available

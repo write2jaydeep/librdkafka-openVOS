@@ -1,0 +1,16 @@
+DBG 67194267: tput reports color support: false
+DBG 67194267: Did not detect color support in "SoftTerm" terminal!
+DBG 67194267: Loading module builtin (required by base) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.builtin
+DBG 67194267: Loading module host (required by base) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.host
+DBG 67194267: Loading module cc (required by base) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.cc
+DBG 67194267: Loading module self (required by base) from configure.self
+DBG 67194267: Loading module cxx (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.cxx
+DBG 67194267: Loading module lib (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.lib
+DBG 67194267: Loading module pic (required by lib) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.pic
+DBG 67194267: Loading module atomics (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.atomics
+DBG 67194267: Loading module good_cflags (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.good_cflags
+DBG 67194267: Loading module socket (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.socket
+DBG 67194267: Loading module libzstd (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.libzstd
+DBG 67194267: Loading module libssl (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.libssl
+DBG 67194267: Loading module libsasl2 (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.libsasl2
+DBG 67194267: Loading module parseversion (required by self) from /%mkt2#m2_d06/Stratusoft/J_SOURCE/work_dir/librdkafka/mklove/modules/configure.parseversion
