@@ -674,19 +674,22 @@ static const struct rd_kafka_property rd_kafka_properties[] = {
           "implementing a certificate_verify_cb.",
           0, 1, 1
         },
+#if OPENSSL_VERSION_NUMBER >= 0x1000200fL
         { _RK_GLOBAL, "ssl.endpoint.identification.algorithm", _RK_C_S2I,
           _RK(ssl.endpoint_identification),
           "Endpoint identification algorithm to validate broker "
           "hostname using broker certificate. "
           "https - Server (broker) hostname verification as "
           "specified in RFC2818. "
-          "none - No endpoint verification.",
+          "none - No endpoint verification. "
+          "OpenSSL >= 1.0.2 required.",
           .vdef = RD_KAFKA_SSL_ENDPOINT_ID_NONE,
           .s2i = {
                         { RD_KAFKA_SSL_ENDPOINT_ID_NONE, "none" },
                         { RD_KAFKA_SSL_ENDPOINT_ID_HTTPS, "https" }
                 }
         },
+#endif
         { _RK_GLOBAL, "ssl.certificate.verify_cb", _RK_C_PTR,
           _RK(ssl.cert_verify_cb),
           "Callback to verify the broker certificate chain."
@@ -732,7 +735,7 @@ static const struct rd_kafka_property rd_kafka_properties[] = {
           _RK(sasl.kinit_cmd),
           "Shell command to refresh or acquire the client's Kerberos ticket. "
           "This command is executed on client creation and every "
-          "sasl.kerberos.min.time.before.relogin. "
+          "sasl.kerberos.min.time.before.relogin (0=disable). "
           "%{config.prop.name} is replaced by corresponding config "
           "object value.",
           .sdef =
@@ -747,10 +750,11 @@ static const struct rd_kafka_property rd_kafka_properties[] = {
           "This configuration property is only used as a variable in "
           "`sasl.kerberos.kinit.cmd` as "
           "` ... -t \"%{sasl.kerberos.keytab}\"`." },
-	{ _RK_GLOBAL, "sasl.kerberos.min.time.before.relogin", _RK_C_INT,
-	  _RK(sasl.relogin_min_time),
-	  "Minimum time in milliseconds between key refresh attempts.",
-	  1, 86400*1000, 60*1000 },
+        { _RK_GLOBAL, "sasl.kerberos.min.time.before.relogin", _RK_C_INT,
+          _RK(sasl.relogin_min_time),
+          "Minimum time in milliseconds between key refresh attempts. "
+          "Disable automatic key refresh by setting this property to 0.",
+          0, 86400*1000, 60*1000 },
 #endif
 	{ _RK_GLOBAL|_RK_HIGH, "sasl.username", _RK_C_STR,
 	  _RK(sasl.username),
@@ -1150,7 +1154,7 @@ static const struct rd_kafka_property rd_kafka_properties[] = {
 	  "This is the maximum time librdkafka may use to deliver a message "
 	  "(including retries). Delivery error occurs when either the retry "
 	  "count or the message timeout are exceeded.",
-	  0, 900*1000, 300*1000 },
+	  0, INT32_MAX, 300*1000 },
         { _RK_TOPIC|_RK_PRODUCER|_RK_HIGH, "delivery.timeout.ms", _RK_C_ALIAS,
           .sdef = "message.timeout.ms" },
         { _RK_TOPIC|_RK_PRODUCER|_RK_DEPRECATED|_RK_EXPERIMENTAL,
