@@ -62,6 +62,14 @@ rd_kafka_compression2str (rd_kafka_compression_t compr) {
                 [RD_KAFKA_COMPRESSION_ZSTD] = "zstd",
                 [RD_KAFKA_COMPRESSION_INHERIT] = "inherit"
         };
+        static RD_TLS char ret[32];
+
+        if ((int)compr < 0 || compr >= RD_KAFKA_COMPRESSION_NUM) {
+                rd_snprintf(ret, sizeof(ret),
+                            "codec0x%x?", (int)compr);
+                return ret;
+        }
+
         return names[compr];
 }
 
@@ -146,8 +154,9 @@ typedef enum {
         RD_KAFKA_SSL_ENDPOINT_ID_HTTPS,  /**< RFC2818 */
 } rd_kafka_ssl_endpoint_id_t;
 
-/* Increase in steps of 64 as needed. */
-#define RD_KAFKA_CONF_PROPS_IDX_MAX (64*24)
+/* Increase in steps of 64 as needed.
+ * This must be larger than sizeof(rd_kafka_[topic_]conf_t) */
+#define RD_KAFKA_CONF_PROPS_IDX_MAX (64*27)
 
 /**
  * @struct rd_kafka_anyconf_t
@@ -184,6 +193,7 @@ struct rd_kafka_conf_s {
 	int     metadata_refresh_fast_interval_ms;
         int     metadata_refresh_sparse;
         int     metadata_max_age_ms;
+        int     metadata_propagation_max_ms;
 	int     debug;
 	int     broker_addr_ttl;
         int     broker_addr_family;
@@ -293,6 +303,8 @@ struct rd_kafka_conf_s {
                 rd_list_t on_consume;         /* .. (copied) */
                 rd_list_t on_commit;          /* .. (copied) */
                 rd_list_t on_request_sent;    /* .. (copied) */
+                rd_list_t on_thread_start;    /* .. (copied) */
+                rd_list_t on_thread_exit;     /* .. (copied) */
 
                 /* rd_strtup_t list */
                 rd_list_t config;             /* Configuration name=val's
@@ -317,6 +329,8 @@ struct rd_kafka_conf_s {
 	int    fetch_min_bytes;
 	int    fetch_error_backoff_ms;
         char  *group_id_str;
+        char  *group_instance_id;
+        int    allow_auto_create_topics;
 
         rd_kafka_pattern_list_t *topic_blacklist;
         struct rd_kafka_topic_conf_s *topic_conf; /* Default topic config
@@ -344,24 +358,39 @@ struct rd_kafka_conf_s {
                                   void *opaque);
 
         rd_kafka_offset_method_t offset_store_method;
+
+        rd_kafka_isolation_level_t isolation_level;
+
 	int enable_partition_eof;
+
+	rd_kafkap_str_t *client_rack;
 
 	/*
 	 * Producer configuration
 	 */
         struct {
+                /*
+                 * Idempotence
+                 */
                 int    idempotence;  /**< Enable Idempotent Producer */
                 rd_bool_t gapless;   /**< Raise fatal error if
                                       *   gapless guarantee can't be
                                       *   satisfied. */
+                /*
+                 * Transactions
+                 */
+                char *transactional_id;       /**< Transactional Id */
+                int   transaction_timeout_ms; /**< Transaction timeout */
         } eos;
 	int    queue_buffering_max_msgs;
 	int    queue_buffering_max_kbytes;
-	int    buffering_max_ms;
+        double buffering_max_ms_dbl; /**< This is the configured value */
+	rd_ts_t buffering_max_us;    /**< This is the value used in the code */
         int    queue_backpressure_thres;
 	int    max_retries;
 	int    retry_backoff_ms;
 	int    batch_num_messages;
+        int    batch_size;
 	rd_kafka_compression_t compression_codec;
 	int    dr_err_only;
 
@@ -400,6 +429,9 @@ struct rd_kafka_conf_s {
         int    log_queue;
         int    log_thread_name;
         int    log_connection_close;
+
+        /* PRNG seeding */
+        int    enable_random_seed;
 
         /* Error callback */
 	void (*error_cb) (rd_kafka_t *rk, int err,
@@ -452,6 +484,13 @@ struct rd_kafka_conf_s {
 
 
         /*
+         * Test mocks
+         */
+        struct {
+                int broker_cnt;  /**< Number of mock brokers */
+        } mock;
+
+        /*
          * Unit test pluggable interfaces
          */
         struct {
@@ -462,12 +501,15 @@ struct rd_kafka_conf_s {
                         uint64_t msgid,
                         rd_kafka_resp_err_t err);
         } ut;
+
+        char *sw_name;    /**< Software/client name */
+        char *sw_version; /**< Software/client version */
 };
 
 int rd_kafka_socket_cb_linux (int domain, int type, int protocol, void *opaque);
 int rd_kafka_socket_cb_generic (int domain, int type, int protocol,
                                 void *opaque);
-#ifndef _MSC_VER
+#ifndef _WIN32
 int rd_kafka_open_cb_linux (const char *pathname, int flags, mode_t mode,
                             void *opaque);
 #endif
@@ -514,6 +556,9 @@ struct rd_kafka_topic_conf_s {
 
 void rd_kafka_anyconf_destroy (int scope, void *conf);
 
+rd_bool_t rd_kafka_conf_is_modified (const rd_kafka_conf_t *conf,
+                                     const char *name);
+
 void rd_kafka_desensitize_str (char *str);
 
 void rd_kafka_conf_desensitize (rd_kafka_conf_t *conf);
@@ -522,7 +567,7 @@ void rd_kafka_topic_conf_desensitize (rd_kafka_topic_conf_t *tconf);
 const char *rd_kafka_conf_finalize (rd_kafka_type_t cltype,
                                     rd_kafka_conf_t *conf);
 const char *rd_kafka_topic_conf_finalize (rd_kafka_type_t cltype,
-                                          const rd_kafka_conf_t *conf,
+                                          rd_kafka_conf_t *conf,
                                           rd_kafka_topic_conf_t *tconf);
 
 

@@ -1,7 +1,7 @@
 EXAMPLES ?= rdkafka_example rdkafka_performance rdkafka_example_cpp \
-	rdkafka_consumer_example rdkafka_consumer_example_cpp \
-	kafkatest_verifiable_client rdkafka_simple_producer \
-	rdkafka_idempotent_producer
+	rdkafka_complex_consumer_example rdkafka_complex_consumer_example_cpp \
+	kafkatest_verifiable_client \
+	producer consumer idempotent_producer transactions
 
 all: $(EXAMPLES)
 
@@ -29,16 +29,28 @@ rdkafka_example: ../src/librdkafka.a rdkafka_example.c
 	@echo "# More usage options:"
 	@echo "./$@ -h"
 
-rdkafka_simple_producer: ../src/librdkafka.a rdkafka_simple_producer.c
+producer: ../src/librdkafka.a producer.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $@.c -o $@ $(LDFLAGS) \
 		../src/librdkafka.a $(LIBS)
 
-rdkafka_idempotent_producer: ../src/librdkafka.a rdkafka_idempotent_producer.c
+producer_cpp: ../src-cpp/librdkafka++.a ../src/librdkafka.a producer.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) producer.cpp -o $@ $(LDFLAGS) \
+		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS)
+
+consumer: ../src/librdkafka.a consumer.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $@.c -o $@ $(LDFLAGS) \
 		../src/librdkafka.a $(LIBS)
 
-rdkafka_consumer_example: ../src/librdkafka.a rdkafka_consumer_example.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) rdkafka_consumer_example.c -o $@ $(LDFLAGS) \
+idempotent_producer: ../src/librdkafka.a idempotent_producer.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) $@.c -o $@ $(LDFLAGS) \
+		../src/librdkafka.a $(LIBS)
+
+transactions: ../src/librdkafka.a transactions.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) $@.c -o $@ $(LDFLAGS) \
+		../src/librdkafka.a $(LIBS)
+
+rdkafka_complex_consumer_example: ../src/librdkafka.a rdkafka_complex_consumer_example.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) rdkafka_complex_consumer_example.c -o $@ $(LDFLAGS) \
 		../src/librdkafka.a $(LIBS)
 	@echo "# $@ is ready"
 	@echo "#"
@@ -66,20 +78,20 @@ rdkafka_performance: ../src/librdkafka.a rdkafka_performance.c
 
 rdkafka_example_cpp: ../src-cpp/librdkafka++.a ../src/librdkafka.a rdkafka_example.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) rdkafka_example.cpp -o $@ $(LDFLAGS) \
-		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS) -lstdc++
+		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS)
 
 kafkatest_verifiable_client: ../src-cpp/librdkafka++.a ../src/librdkafka.a kafkatest_verifiable_client.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) kafkatest_verifiable_client.cpp -o $@ $(LDFLAGS) \
-		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS) -lstdc++
+		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS)
 
 
-rdkafka_consumer_example_cpp: ../src-cpp/librdkafka++.a ../src/librdkafka.a rdkafka_consumer_example.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) rdkafka_consumer_example.cpp -o $@ $(LDFLAGS) \
-		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS) -lstdc++
+rdkafka_complex_consumer_example_cpp: ../src-cpp/librdkafka++.a ../src/librdkafka.a rdkafka_complex_consumer_example.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) rdkafka_complex_consumer_example.cpp -o $@ $(LDFLAGS) \
+		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS)
 
 rdkafka_consume_batch: ../src-cpp/librdkafka++.a ../src/librdkafka.a rdkafka_consume_batch.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) rdkafka_consume_batch.cpp -o $@ $(LDFLAGS) \
-		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS) -lstdc++
+		../src-cpp/librdkafka++.a ../src/librdkafka.a $(LIBS)
 
 rdkafka_zookeeper_example: ../src/librdkafka.a rdkafka_zookeeper_example.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -I/usr/include/zookeeper rdkafka_zookeeper_example.c -o $@ $(LDFLAGS) \

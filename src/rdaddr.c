@@ -27,19 +27,20 @@
  */
 
 
+
 #include "rd.h"
 #include "rdaddr.h"
 #include "rdrand.h"
 
-#ifdef _MSC_VER
-#include <WS2tcpip.h>
+#ifdef _WIN32
+#include <ws2tcpip.h>
 #endif
 
 const char *rd_sockaddr2str (const void *addr, int flags) {
 	const rd_sockaddr_inx_t *a = (const rd_sockaddr_inx_t *)addr;
 	static RD_TLS char ret[32][INET6_ADDRSTRLEN + 16];
 	static RD_TLS int  reti = 0;
-	char portstr[64];
+	char portstr[32];
 	int of = 0;
 	int niflags = NI_NUMERICSERV;
 
@@ -173,7 +174,7 @@ rd_sockaddr_list_t *rd_getaddrinfo (const char *nodesvc, const char *defsvc,
 #endif
 			*errstr = rd_strerror(errno);
 		else {
-#ifdef _MSC_VER
+#ifdef _WIN32
 			*errstr = gai_strerrorA(r);
 #else
 			*errstr = gai_strerror(r);

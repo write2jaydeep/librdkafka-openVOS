@@ -325,7 +325,7 @@ void rd_buf_destroy (rd_buf_t *rbuf) {
                 float fill_grade = (float)rbuf->rbuf_len /
                         (float)rbuf->rbuf_size;
 
-                printf("fill grade: %.2f%% (%zu bytes over-allocated)\n",
+                printf("fill grade: %.2f%% (%"PRIusz" bytes over-allocated)\n",
                        fill_grade * 100.0f, overalloc);
         }
 #endif
@@ -761,9 +761,6 @@ size_t rd_slice_reader0 (rd_slice_t *slice, const void **p, int update_pos) {
         if (unlikely(!seg || seg->seg_absof+rof >= slice->end))
                 return 0;
 
-        rd_assert(seg->seg_absof+rof <= slice->end);
-
-
         *p   = (const void *)(seg->seg_p + rof);
         rlen = RD_MIN(seg->seg_of - rof, rd_slice_remains(slice));
 
@@ -869,6 +866,53 @@ size_t rd_slice_peek (const rd_slice_t *slice, size_t offset,
 
 }
 
+
+/**
+ * @brief Read a varint-encoded unsigned integer from \p slice,
+ *        storing the decoded number in \p nump on success (return value > 0).
+ *
+ * @returns the number of bytes read on success or 0 in case of
+ *          buffer underflow.
+ */
+size_t rd_slice_read_uvarint (rd_slice_t *slice, uint64_t *nump) {
+        uint64_t num = 0;
+        int shift = 0;
+        size_t rof = slice->rof;
+        const rd_segment_t *seg;
+
+        /* Traverse segments, byte for byte, until varint is decoded
+         * or no more segments available (underflow). */
+        for (seg = slice->seg ; seg ; seg = TAILQ_NEXT(seg, seg_link)) {
+                for ( ; rof < seg->seg_of ; rof++) {
+                        unsigned char oct;
+
+                        if (unlikely(seg->seg_absof+rof >= slice->end))
+                                return 0; /* Underflow */
+
+                        oct = *(const unsigned char *)(seg->seg_p + rof);
+
+                        num |= (uint64_t)(oct & 0x7f) << shift;
+                        shift += 7;
+
+                        if (!(oct & 0x80)) {
+                                /* Done: no more bytes expected */
+                                *nump = num;
+
+                                /* Update slice's read pointer and offset */
+                                if (slice->seg != seg)
+                                        slice->seg = seg;
+                                slice->rof = rof + 1; /* including the +1 byte
+                                                       * that was just read */
+
+                                return shift / 7;
+                        }
+                }
+
+                rof = 0;
+        }
+
+        return 0; /* Underflow */
+}
 
 
 /**
@@ -1120,7 +1164,8 @@ void rd_buf_dump (const rd_buf_t *rbuf, int do_hexdump) {
                         rbuf->rbuf_segment_cnt);
                 TAILQ_FOREACH(seg, &rbuf->rbuf_segments, seg_link) {
                         rd_segment_dump(seg, "  ", 0, do_hexdump);
-                        rd_assert(++segcnt <= rbuf->rbuf_segment_cnt);
+                        segcnt++;
+                        rd_assert(segcnt <= rbuf->rbuf_segment_cnt);
                 }
         }
 }
@@ -1185,7 +1230,7 @@ static int do_unittest_write_read (void) {
         RD_UT_ASSERT(pos == 200, "pos() returned position %"PRIusz, pos);
 
         r = rd_buf_write(&b, twos, 800);
-        RD_UT_ASSERT(pos == 200, "write() returned position %"PRIusz, r);
+        RD_UT_ASSERT(r == 200, "write() returned position %"PRIusz, r);
         pos = rd_buf_write_pos(&b);
         RD_UT_ASSERT(pos == 200+800, "pos() returned position %"PRIusz, pos);
 
@@ -1435,7 +1480,7 @@ static int do_unittest_write_read_payload_correctness (void) {
                 for (i = 0 ; i < max_cnt ; i++) {
                         uint32_t buf_crc;
 
-                        crc = rd_crc32_update(crc, (void *)&i, sizeof(&i));
+                        crc = rd_crc32_update(crc, (void *)&i, sizeof(i));
 
                         if (pass == 0)
                                 r = rd_slice_peek(&slice, i * sizeof(buf_crc),

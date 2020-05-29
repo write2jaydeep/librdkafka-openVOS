@@ -84,7 +84,7 @@ static RD_INLINE rd_ts_t rd_clock (void) {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	return ((rd_ts_t)tv.tv_sec * 1000000LLU) + (rd_ts_t)tv.tv_usec;
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
         LARGE_INTEGER now;
         static RD_TLS double freq = 0.0;
         if (!freq) {
@@ -124,7 +124,7 @@ static RD_INLINE const char *rd_ctime (const time_t *t) RD_UNUSED;
 static RD_INLINE const char *rd_ctime (const time_t *t) {
 	static RD_TLS char ret[27];
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 	ctime_r(t, ret);
 #else
 	ctime_s(ret, sizeof(ret), t);
@@ -132,6 +132,32 @@ static RD_INLINE const char *rd_ctime (const time_t *t) {
 	ret[25] = '\0';
 
 	return ret;
+}
+
+
+/**
+ * @brief Convert a relative millisecond timeout to microseconds,
+ *        properly handling RD_POLL_NOWAIT, et.al.
+ */
+static RD_INLINE rd_ts_t rd_timeout_us (int timeout_ms) {
+        if (timeout_ms <= 0)
+                return (rd_ts_t)timeout_ms;
+        else
+                return (rd_ts_t)timeout_ms * 1000;
+}
+
+/**
+ * @brief Convert a relative microsecond timeout to milliseconds,
+ *        properly handling RD_POLL_NOWAIT, et.al.
+ */
+static RD_INLINE int rd_timeout_ms (rd_ts_t timeout_us) {
+        if (timeout_us <= 0)
+                return (int)timeout_us;
+        else
+                /* + 999: Round up to millisecond to
+                 * avoid busy-looping during the last
+                 * millisecond. */
+                return (int)((timeout_us + 999) / 1000);
 }
 
 
@@ -156,6 +182,37 @@ static RD_INLINE rd_ts_t rd_timeout_init (int timeout_ms) {
 
 /**
  * @brief Initialize an absolute timespec timeout based on the provided
+ *        relative \p timeout_us.
+ *
+ * To be used with cnd_timedwait_abs().
+ *
+ * Honours RD_POLL_INFITE and RD_POLL_NOWAIT (reflected in tspec.tv_sec).
+ */
+static RD_INLINE void rd_timeout_init_timespec_us (struct timespec *tspec,
+                                                   rd_ts_t timeout_us) {
+        if (timeout_us == RD_POLL_INFINITE ||
+            timeout_us == RD_POLL_NOWAIT) {
+                tspec->tv_sec = timeout_us;
+                tspec->tv_nsec = 0;
+        } else {
+#ifdef __APPLE__
+                struct timeval tv;
+                gettimeofday(&tv, NULL);
+                TIMEVAL_TO_TIMESPEC(&tv, tspec);
+#else
+                timespec_get(tspec, TIME_UTC);
+#endif
+                tspec->tv_sec  += timeout_us / 1000000;
+                tspec->tv_nsec += (timeout_us % 1000000) * 1000;
+                if (tspec->tv_nsec >= 1000000000) {
+                        tspec->tv_nsec -= 1000000000;
+                        tspec->tv_sec++;
+                }
+        }
+}
+
+/**
+ * @brief Initialize an absolute timespec timeout based on the provided
  *        relative \p timeout_ms.
  *
  * To be used with cnd_timedwait_abs().
@@ -169,7 +226,13 @@ static RD_INLINE void rd_timeout_init_timespec (struct timespec *tspec,
                 tspec->tv_sec = timeout_ms;
                 tspec->tv_nsec = 0;
         } else {
+#ifdef __APPLE__
+                struct timeval tv;
+                gettimeofday(&tv, NULL);
+                TIMEVAL_TO_TIMESPEC(&tv, tspec);
+#else
                 timespec_get(tspec, TIME_UTC);
+#endif
                 tspec->tv_sec  += timeout_ms / 1000;
                 tspec->tv_nsec += (timeout_ms % 1000) * 1000000;
                 if (tspec->tv_nsec >= 1000000000) {
@@ -204,22 +267,27 @@ static RD_INLINE rd_ts_t rd_timeout_remains_us (rd_ts_t abs_timeout) {
  * Honours RD_POLL_INFINITE, RD_POLL_NOWAIT.
  *
  * @remark Check explicitly for 0 (NOWAIT) to check if there is
- *         no remaining time to way. Any other value, even negative (INFINITE),
+ *         no remaining time to wait. Any other value, even negative (INFINITE),
  *         means there is remaining time.
  *         rd_timeout_expired() can be used to check the return value
  *         in a bool fashion.
  */
 static RD_INLINE int rd_timeout_remains (rd_ts_t abs_timeout) {
-        rd_ts_t timeout_us = rd_timeout_remains_us(abs_timeout);
+        return rd_timeout_ms(rd_timeout_remains_us(abs_timeout));
+}
 
-        if (timeout_us == RD_POLL_INFINITE ||
-            timeout_us == RD_POLL_NOWAIT)
-                return (int)timeout_us;
 
-        /* + 999: Round up to millisecond to
-         * avoid busy-looping during the last
-         * millisecond. */
-        return (int)((timeout_us + 999) / 1000);
+
+/**
+ * @brief Like rd_timeout_remains() but limits the maximum time to \p limit_ms,
+ *        and operates on the return value of rd_timeout_remains().
+ */
+static RD_INLINE int
+rd_timeout_remains_limit0 (int remains_ms, int limit_ms) {
+	if (remains_ms == RD_POLL_INFINITE || remains_ms > limit_ms)
+		return limit_ms;
+	else
+		return remains_ms;
 }
 
 /**
@@ -227,14 +295,9 @@ static RD_INLINE int rd_timeout_remains (rd_ts_t abs_timeout) {
  */
 static RD_INLINE int
 rd_timeout_remains_limit (rd_ts_t abs_timeout, int limit_ms) {
-	int timeout_ms = rd_timeout_remains(abs_timeout);
-
-	if (timeout_ms == RD_POLL_INFINITE || timeout_ms > limit_ms)
-		return limit_ms;
-	else
-		return timeout_ms;
+        return rd_timeout_remains_limit0(rd_timeout_remains(abs_timeout),
+                                         limit_ms);
 }
-
 
 /**
  * @returns 1 if the **relative** timeout as returned by rd_timeout_remains()

@@ -98,7 +98,8 @@ static void do_test_destroy_flags (const char *topic,
                         rkt = test_create_producer_topic(rk, topic, NULL);
                         test_produce_msgs_nowait(rk, rkt, 0,
                                                  RD_KAFKA_PARTITION_UA,
-                                                 0, 10000, NULL, 100, 0,
+                                                 0, args->produce_cnt,
+                                                 NULL, 100, 0,
                                                  &msgcounter);
                         rd_kafka_topic_destroy(rkt);
                 }
@@ -171,7 +172,7 @@ static void do_test_destroy_flags (const char *topic,
 static void destroy_flags (int local_mode) {
         const struct df_args args[] = {
                 { RD_KAFKA_PRODUCER, 0, 0, 0 },
-                { RD_KAFKA_PRODUCER, 10000, 0, 0 },
+                { RD_KAFKA_PRODUCER, test_quick ? 100 : 10000, 0, 0 },
                 { RD_KAFKA_CONSUMER, 0, 1, 0 },
                 { RD_KAFKA_CONSUMER, 0, 1, 1 },
                 { RD_KAFKA_CONSUMER, 0, 0, 0 }
@@ -179,10 +180,21 @@ static void destroy_flags (int local_mode) {
         const int flag_combos[] = { 0,
                                     RD_KAFKA_DESTROY_F_NO_CONSUMER_CLOSE };
         const char *topic = test_mk_topic_name(__FUNCTION__, 1);
+        const rd_bool_t can_subscribe =
+                test_broker_version >= TEST_BRKVER(0,9,0,0);
         int i, j;
+
+        /* Create the topic to avoid not-yet-auto-created-topics being
+         * subscribed to (and thus raising an error). */
+        if (!local_mode)
+                test_create_topic(NULL, topic, 3, 1);
 
         for (i = 0 ; i < (int)RD_ARRAYSIZE(args) ; i++) {
                 for (j = 0 ; j < (int)RD_ARRAYSIZE(flag_combos) ; j++) {
+                        if (!can_subscribe &&
+                            (args[i].consumer_subscribe ||
+                             args[i].consumer_unsubscribe))
+                                continue;
                         do_test_destroy_flags(topic,
                                               flag_combos[j],
                                               local_mode,

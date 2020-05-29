@@ -45,8 +45,12 @@ static const char *rd_kafka_feature_names[] = {
         "MsgVer2",
         "IdempotentProducer",
         "ZSTD",
+        "SaslAuthReq",
+#ifdef RD_KAFKA_FEATURE_KIP360
+        "KIP-360",
+#endif
         "UnitTest",
-	NULL
+        NULL
 };
 
 
@@ -88,7 +92,6 @@ static const struct rd_kafka_feature_map {
                 },
         },
 	{
-		
 		/* @brief >=0.10.0: ApiVersionQuery support.
 		 * @remark This is a bit of chicken-and-egg problem but needs to be
 		 *         set by feature_check() to avoid the feature being cleared
@@ -103,7 +106,7 @@ static const struct rd_kafka_feature_map {
 		/* @brief >=0.8.2.0: Broker-based Group coordinator */
 		.feature = RD_KAFKA_FEATURE_BROKER_GROUP_COORD,
 		.depends = {
-			{ RD_KAFKAP_GroupCoordinator, 0, 0 },
+			{ RD_KAFKAP_FindCoordinator, 0, 0 },
 			{ -1 },
 		},
 	},
@@ -111,7 +114,7 @@ static const struct rd_kafka_feature_map {
 		/* @brief >=0.9.0: Broker-based balanced consumer groups. */
 		.feature = RD_KAFKA_FEATURE_BROKER_BALANCED_CONSUMER,
 		.depends = {
-			{ RD_KAFKAP_GroupCoordinator, 0, 0 },
+			{ RD_KAFKAP_FindCoordinator, 0, 0 },
 			{ RD_KAFKAP_OffsetCommit, 1, 2 },
 			{ RD_KAFKAP_OffsetFetch, 1, 1 },
 			{ RD_KAFKAP_JoinGroup, 0, 0 },
@@ -162,7 +165,7 @@ static const struct rd_kafka_feature_map {
                  * GrooupCoordinator was released in 0.8.2 */
                 .feature = RD_KAFKA_FEATURE_LZ4,
                 .depends = {
-                        { RD_KAFKAP_GroupCoordinator, 0, 0 },
+                        { RD_KAFKAP_FindCoordinator, 0, 0 },
                         { -1 },
                 },
         },
@@ -192,6 +195,26 @@ static const struct rd_kafka_feature_map {
                         { -1 },
                 },
         },
+        {
+                /* @brief >=1.0.0: SaslAuthenticateRequest */
+                .feature = RD_KAFKA_FEATURE_SASL_AUTH_REQ,
+                .depends = {
+                        { RD_KAFKAP_SaslHandshake, 1, 1 },
+                        { RD_KAFKAP_SaslAuthenticate, 0, 0 },
+                        { -1 },
+                },
+        },
+#ifdef RD_KAFKA_FEATURE_KIP360
+        {
+                /* @brief >=2.4.0: KIP-360 */
+                .feature = RD_KAFKA_FEATURE_KIP360,
+                .depends = {
+                        { RD_KAFKAP_InitProducerId, 2, 2 },
+                        { -1 },
+                },
+
+        },
+#endif
         { .feature = 0 }, /* sentinel */
 };
 
@@ -216,7 +239,7 @@ static struct rd_kafka_ApiVersion rd_kafka_ApiVersion_0_9_0[] = {
 	{ RD_KAFKAP_Metadata, 0, 0 },
 	{ RD_KAFKAP_OffsetCommit, 0, 2 },
 	{ RD_KAFKAP_OffsetFetch, 0, 1 },
-	{ RD_KAFKAP_GroupCoordinator, 0, 0 },
+	{ RD_KAFKAP_FindCoordinator, 0, 0 },
 	{ RD_KAFKAP_JoinGroup, 0, 0 },
 	{ RD_KAFKAP_Heartbeat, 0, 0 },
 	{ RD_KAFKAP_LeaveGroup, 0, 0 },
@@ -233,7 +256,7 @@ static struct rd_kafka_ApiVersion rd_kafka_ApiVersion_0_8_2[] = {
 	{ RD_KAFKAP_Metadata, 0, 0 },
 	{ RD_KAFKAP_OffsetCommit, 0, 1 },
 	{ RD_KAFKAP_OffsetFetch, 0, 1 },
-	{ RD_KAFKAP_GroupCoordinator, 0, 0 }
+	{ RD_KAFKAP_FindCoordinator, 0, 0 }
 };
 
 /* =~ 0.8.1 */

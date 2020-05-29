@@ -60,7 +60,7 @@ struct rd_kafkap_reqhdr {
 #define RD_KAFKAP_ControlledShutdown 7
 #define RD_KAFKAP_OffsetCommit  8
 #define RD_KAFKAP_OffsetFetch   9
-#define RD_KAFKAP_GroupCoordinator 10
+#define RD_KAFKAP_FindCoordinator 10
 #define RD_KAFKAP_JoinGroup     11
 #define RD_KAFKAP_Heartbeat     12
 #define RD_KAFKAP_LeaveGroup    13
@@ -125,7 +125,7 @@ const char *rd_kafka_ApiKey2str (int16_t ApiKey) {
                 [RD_KAFKAP_ControlledShutdown] = "ControlledShutdown",
                 [RD_KAFKAP_OffsetCommit] = "OffsetCommit",
                 [RD_KAFKAP_OffsetFetch] = "OffsetFetch",
-                [RD_KAFKAP_GroupCoordinator] = "GroupCoordinator",
+                [RD_KAFKAP_FindCoordinator] = "FindCoordinator",
                 [RD_KAFKAP_JoinGroup] = "JoinGroup",
                 [RD_KAFKAP_Heartbeat] = "Heartbeat",
                 [RD_KAFKAP_LeaveGroup] = "LeaveGroup",
@@ -190,16 +190,32 @@ struct rd_kafka_ApiVersion {
 /**
  * @brief ApiVersion.ApiKey comparator.
  */
-static RD_UNUSED int rd_kafka_ApiVersion_key_cmp (const void *_a, const void *_b) {
-	const struct rd_kafka_ApiVersion *a = _a, *b = _b;
-
-	return a->ApiKey - b->ApiKey;
+static RD_UNUSED
+int rd_kafka_ApiVersion_key_cmp (const void *_a, const void *_b) {
+        const struct rd_kafka_ApiVersion *a = _a, *b = _b;
+        return RD_CMP(a->ApiKey, b->ApiKey);
 }
 
 
 
-#define RD_KAFKAP_READ_UNCOMMITTED  0
-#define RD_KAFKAP_READ_COMMITTED    1
+typedef enum {
+        RD_KAFKA_READ_UNCOMMITTED = 0,
+        RD_KAFKA_READ_COMMITTED = 1
+} rd_kafka_isolation_level_t;
+
+
+
+#define RD_KAFKA_CTRL_MSG_ABORT 0
+#define RD_KAFKA_CTRL_MSG_COMMIT 1
+
+
+/**
+ * @enum Coordinator type, used with FindCoordinatorRequest
+ */
+typedef enum rd_kafka_coordtype_t {
+        RD_KAFKA_COORD_GROUP = 0,
+        RD_KAFKA_COORD_TXN = 1
+} rd_kafka_coordtype_t;
 
 
 /**
@@ -230,7 +246,12 @@ typedef struct rd_kafkap_str_s {
 #define RD_KAFKAP_STR_SIZE(kstr) RD_KAFKAP_STR_SIZE0((kstr)->len)
 
 
-/* Serialized Kafka string: only works for _new() kstrs */
+/** @returns true if kstr is pre-serialized through .._new() */
+#define RD_KAFKAP_STR_IS_SERIALIZED(kstr)                               \
+        (((const char *)((kstr)+1))+2 == (const char *)((kstr)->str))
+
+/* Serialized Kafka string: only works for _new() kstrs.
+ * Check with RD_KAFKAP_STR_IS_SERIALIZED */
 #define RD_KAFKAP_STR_SER(kstr)  ((kstr)+1)
 
 /* Macro suitable for "%.*s" printing. */
@@ -271,7 +292,7 @@ rd_kafkap_str_t *rd_kafkap_str_new (const char *str, int len) {
 	if (!str)
 		len = RD_KAFKAP_STR_LEN_NULL;
 	else if (len == -1)
-		len = str ? (int)strlen(str) : RD_KAFKAP_STR_LEN_NULL;
+		len = (int)strlen(str);
 
 	kstr = rd_malloc(sizeof(*kstr) + 2 +
 			 (len == RD_KAFKAP_STR_LEN_NULL ? 0 : len + 1));
@@ -281,7 +302,7 @@ rd_kafkap_str_t *rd_kafkap_str_new (const char *str, int len) {
 	klen = htobe16(len);
 	memcpy(kstr+1, &klen, 2);
 
-	/* Serialised format: non null-terminated string */
+	/* Pre-Serialised format: non null-terminated string */
 	if (len == RD_KAFKAP_STR_LEN_NULL)
 		kstr->str = NULL;
 	else {
@@ -310,7 +331,7 @@ static RD_INLINE RD_UNUSED int rd_kafkap_str_cmp (const rd_kafkap_str_t *a,
 	if (r)
 		return r;
 	else
-		return a->len - b->len;
+                return RD_CMP(a->len, b->len);
 }
 
 static RD_INLINE RD_UNUSED int rd_kafkap_str_cmp_str (const rd_kafkap_str_t *a,
@@ -321,7 +342,7 @@ static RD_INLINE RD_UNUSED int rd_kafkap_str_cmp_str (const rd_kafkap_str_t *a,
 	if (r)
 		return r;
 	else
-		return a->len - len;
+                return RD_CMP(a->len, len);
 }
 
 static RD_INLINE RD_UNUSED int rd_kafkap_str_cmp_str2 (const char *str,
@@ -332,7 +353,7 @@ static RD_INLINE RD_UNUSED int rd_kafkap_str_cmp_str2 (const char *str,
 	if (r)
 		return r;
 	else
-		return len - b->len;
+                return RD_CMP(len, b->len);
 }
 
 
@@ -366,6 +387,9 @@ typedef struct rd_kafkap_bytes_s {
 #define RD_KAFKAP_BYTES_SIZE0(len) (4 + RD_KAFKAP_BYTES_LEN0(len))
 #define RD_KAFKAP_BYTES_SIZE(kbytes) RD_KAFKAP_BYTES_SIZE0((kbytes)->len)
 
+/** @returns true if kbyes is pre-serialized through .._new() */
+#define RD_KAFKAP_BYTES_IS_SERIALIZED(kstr)                             \
+        (((const char *)((kbytes)+1))+2 == (const char *)((kbytes)->data))
 
 /* Serialized Kafka bytes: only works for _new() kbytes */
 #define RD_KAFKAP_BYTES_SER(kbytes)  ((kbytes)+1)
@@ -434,7 +458,7 @@ static RD_INLINE RD_UNUSED int rd_kafkap_bytes_cmp (const rd_kafkap_bytes_t *a,
 	if (r)
 		return r;
 	else
-		return a->len - b->len;
+                return RD_CMP(a->len, b->len);
 }
 
 static RD_INLINE RD_UNUSED
@@ -445,7 +469,7 @@ int rd_kafkap_bytes_cmp_data (const rd_kafkap_bytes_t *a,
 	if (r)
 		return r;
 	else
-		return a->len - len;
+                return RD_CMP(a->len, len);
 }
 
 

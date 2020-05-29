@@ -47,7 +47,7 @@
 #include "rdkafka.h"  /* for Kafka driver */
 
 
-static int run = 1;
+static volatile sig_atomic_t run = 1;
 static rd_kafka_t *rk;
 static int exit_eof = 0;
 static int wait_eof = 0;  /* number of partitions awaiting EOF */
@@ -179,13 +179,13 @@ static void print_partition_list (FILE *fp,
                                   *partitions) {
         int i;
         for (i = 0 ; i < partitions->cnt ; i++) {
-                fprintf(stderr, "%s %s [%"PRId32"] offset %"PRId64,
+                fprintf(fp, "%s %s [%"PRId32"] offset %"PRId64,
                         i > 0 ? ",":"",
                         partitions->elems[i].topic,
                         partitions->elems[i].partition,
-			partitions->elems[i].offset);
+                        partitions->elems[i].offset);
         }
-        fprintf(stderr, "\n");
+        fprintf(fp, "\n");
 
 }
 static void rebalance_cb (rd_kafka_t *rk,

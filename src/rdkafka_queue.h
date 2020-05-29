@@ -32,7 +32,7 @@
 #include "rdkafka_op.h"
 #include "rdkafka_int.h"
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <io.h> /* for _write() */
 #endif
 
@@ -87,9 +87,11 @@ struct rd_kafka_q_s {
 /* Application signalling state holder. */
 struct rd_kafka_q_io {
         /* For FD-based signalling */
-	int    fd;
+	rd_socket_t fd;
 	void  *payload;
 	size_t size;
+        rd_ts_t ts_rate;  /**< How often the IO wakeup may be performed (us) */
+        rd_ts_t ts_last;  /**< Last IO wakeup */
         /* For callback-based signalling */
         void (*event_cb) (rd_kafka_t *rk, void *opaque);
         void *event_cb_opaque;
@@ -284,10 +286,12 @@ static RD_INLINE RD_UNUSED int rd_kafka_q_is_fwded (rd_kafka_q_t *rkq) {
 /**
  * @brief Trigger an IO event for this queue.
  *
+ * @param rate_limit if true, rate limit IO-based wakeups.
+ *
  * @remark Queue MUST be locked
  */
 static RD_INLINE RD_UNUSED
-void rd_kafka_q_io_event (rd_kafka_q_t *rkq) {
+void rd_kafka_q_io_event (rd_kafka_q_t *rkq, rd_bool_t rate_limit) {
 
 	if (likely(!rkq->rkq_qio))
 		return;
@@ -295,6 +299,15 @@ void rd_kafka_q_io_event (rd_kafka_q_t *rkq) {
         if (rkq->rkq_qio->event_cb) {
                 rkq->rkq_qio->event_cb(rkq->rkq_rk, rkq->rkq_qio->event_cb_opaque);
                 return;
+        }
+
+
+        if (rate_limit) {
+                rd_ts_t now = rd_clock();
+                if (likely(rkq->rkq_qio->ts_last + rkq->rkq_qio->ts_rate > now))
+                        return;
+
+                rkq->rkq_qio->ts_last = now;
         }
 
         /* Ignore errors, not much to do anyway. */
@@ -312,7 +325,7 @@ static RD_INLINE RD_UNUSED
 int rd_kafka_op_cmp_prio (const void *_a, const void *_b) {
         const rd_kafka_op_t *a = _a, *b = _b;
 
-        return b->rko_prio - a->rko_prio;
+        return RD_CMP(b->rko_prio, a->rko_prio);
 }
 
 
@@ -320,7 +333,7 @@ int rd_kafka_op_cmp_prio (const void *_a, const void *_b) {
  * @brief Wake up waiters without enqueuing an op.
  */
 static RD_INLINE RD_UNUSED void
-rd_kafka_q_yield (rd_kafka_q_t *rkq) {
+rd_kafka_q_yield (rd_kafka_q_t *rkq, rd_bool_t rate_limit) {
         rd_kafka_q_t *fwdq;
 
         mtx_lock(&rkq->rkq_lock);
@@ -337,12 +350,12 @@ rd_kafka_q_yield (rd_kafka_q_t *rkq) {
                 rkq->rkq_flags |= RD_KAFKA_Q_F_YIELD;
                 cnd_signal(&rkq->rkq_cond);
                 if (rkq->rkq_qlen == 0)
-                        rd_kafka_q_io_event(rkq);
+                        rd_kafka_q_io_event(rkq, rate_limit);
 
                 mtx_unlock(&rkq->rkq_lock);
         } else {
                 mtx_unlock(&rkq->rkq_lock);
-                rd_kafka_q_yield(fwdq);
+                rd_kafka_q_yield(fwdq, rate_limit);
                 rd_kafka_q_destroy(fwdq);
         }
 
@@ -413,7 +426,7 @@ int rd_kafka_q_enq1 (rd_kafka_q_t *rkq, rd_kafka_op_t *rko,
                 rd_kafka_q_enq0(rkq, rko, at_head);
                 cnd_signal(&rkq->rkq_cond);
                 if (rkq->rkq_qlen == 1)
-                        rd_kafka_q_io_event(rkq);
+                        rd_kafka_q_io_event(rkq, rd_false/*no rate-limiting*/);
 
                 if (do_lock)
                         mtx_unlock(&rkq->rkq_lock);
@@ -518,7 +531,7 @@ int rd_kafka_q_concat0 (rd_kafka_q_t *rkq, rd_kafka_q_t *srcq, int do_lock) {
 
 		TAILQ_CONCAT(&rkq->rkq_q, &srcq->rkq_q, rko_link);
 		if (rkq->rkq_qlen == 0)
-			rd_kafka_q_io_event(rkq);
+			rd_kafka_q_io_event(rkq, rd_false/*no rate-limiting*/);
                 rkq->rkq_qlen += srcq->rkq_qlen;
                 rkq->rkq_qsize += srcq->rkq_qsize;
 		cnd_signal(&rkq->rkq_cond);
@@ -559,7 +572,7 @@ void rd_kafka_q_prepend0 (rd_kafka_q_t *rkq, rd_kafka_q_t *srcq,
                 /* Move srcq to rkq */
                 TAILQ_MOVE(&rkq->rkq_q, &srcq->rkq_q, rko_link);
 		if (rkq->rkq_qlen == 0 && srcq->rkq_qlen > 0)
-			rd_kafka_q_io_event(rkq);
+			rd_kafka_q_io_event(rkq, rd_false/*no rate-limiting*/);
                 rkq->rkq_qlen += srcq->rkq_qlen;
                 rkq->rkq_qsize += srcq->rkq_qsize;
 
@@ -754,12 +767,12 @@ rd_kafka_replyq_enq (rd_kafka_replyq_t *replyq, rd_kafka_op_t *rko,
 
 
 
-rd_kafka_op_t *rd_kafka_q_pop_serve (rd_kafka_q_t *rkq, int timeout_ms,
+rd_kafka_op_t *rd_kafka_q_pop_serve (rd_kafka_q_t *rkq, rd_ts_t timeout_us,
 				     int32_t version,
                                      rd_kafka_q_cb_type_t cb_type,
                                      rd_kafka_q_serve_cb_t *callback,
 				     void *opaque);
-rd_kafka_op_t *rd_kafka_q_pop (rd_kafka_q_t *rkq, int timeout_ms,
+rd_kafka_op_t *rd_kafka_q_pop (rd_kafka_q_t *rkq, rd_ts_t timeout_us,
                                int32_t version);
 int rd_kafka_q_serve (rd_kafka_q_t *rkq, int timeout_ms, int max_cnt,
                       rd_kafka_q_cb_type_t cb_type,
@@ -802,7 +815,7 @@ rd_kafka_op_t *rd_kafka_q_last (rd_kafka_q_t *rkq, rd_kafka_op_type_t op_type,
 	return NULL;
 }
 
-void rd_kafka_q_io_event_enable (rd_kafka_q_t *rkq, int fd,
+void rd_kafka_q_io_event_enable (rd_kafka_q_t *rkq, rd_socket_t fd,
                                  const void *payload, size_t size);
 
 /* Public interface */
@@ -925,7 +938,7 @@ void rd_kafka_enq_once_del_source (rd_kafka_enq_once_t *eonce,
         int do_destroy;
 
         mtx_lock(&eonce->lock);
-        rd_assert(eonce->refcnt > 1);
+        rd_assert(eonce->refcnt > 0);
         eonce->refcnt--;
         do_destroy = eonce->refcnt == 0;
         mtx_unlock(&eonce->lock);
@@ -988,6 +1001,7 @@ void rd_kafka_enq_once_trigger (rd_kafka_enq_once_t *eonce,
         }
 
         if (rko) {
+                rko->rko_err = err;
                 rd_kafka_replyq_enq(&replyq, rko, replyq.version);
                 rd_kafka_replyq_destroy(&replyq);
         }

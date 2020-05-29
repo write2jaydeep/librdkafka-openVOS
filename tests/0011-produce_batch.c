@@ -80,7 +80,7 @@ static void test_single_partition (void) {
         rd_kafka_conf_t *conf;
         rd_kafka_topic_conf_t *topic_conf;
         char msg[128];
-        int msgcnt = test_on_ci ? 1000 : 100000;
+        int msgcnt = test_quick ? 100 : 100000;
         int failcnt = 0;
         int i;
         rd_kafka_message_t *rkmessages;
@@ -202,7 +202,7 @@ static void test_partitioner (void) {
         rd_kafka_conf_t *conf;
         rd_kafka_topic_conf_t *topic_conf;
         char msg[128];
-        int msgcnt = test_on_ci ? 1000 : 100000;
+        int msgcnt = test_quick ? 100 : 100000;
         int failcnt = 0;
         int i;
         rd_kafka_message_t *rkmessages;
@@ -316,8 +316,8 @@ static void test_per_message_partition_flag (void) {
         rd_kafka_topic_t *rkt;
         rd_kafka_conf_t *conf;
         rd_kafka_topic_conf_t *topic_conf;
-        char msg[128];
-        int msgcnt = 1000;
+        char msg[128 + sizeof(__FILE__) + sizeof(__FUNCTION__)];
+        int msgcnt = test_quick ? 100 : 1000;
         int failcnt = 0;
         int i;
         int *rkpartition_counts;
@@ -335,7 +335,7 @@ static void test_per_message_partition_flag (void) {
         TEST_SAY("test_per_message_partition_flag: Created kafka instance %s\n",
                  rd_kafka_name(rk));
         topic_name = test_mk_topic_name("0011_per_message_flag", 1);
-        test_create_topic(topic_name, topic_num_partitions, 1);
+        test_create_topic(rk, topic_name, topic_num_partitions, 1);
 
         rkt = rd_kafka_topic_new(rk, topic_name,
                                  topic_conf);
@@ -450,8 +450,8 @@ static void test_message_partitioner_wo_per_message_flag (void) {
         rd_kafka_topic_t *rkt;
         rd_kafka_conf_t *conf;
         rd_kafka_topic_conf_t *topic_conf;
-        char msg[128];
-        int msgcnt = 1000;
+        char msg[128 + sizeof(__FILE__) + sizeof(__FUNCTION__)];
+        int msgcnt = test_quick ? 100 : 1000;
         int failcnt = 0;
         int i;
         rd_kafka_message_t *rkmessages;
@@ -480,7 +480,7 @@ static void test_message_partitioner_wo_per_message_flag (void) {
                 int *msgidp = malloc(sizeof(*msgidp));
                 *msgidp = i;
                 rd_snprintf(msg, sizeof(msg), "%s:%s test message #%i",
-                        __FILE__, __FUNCTION__, i);
+                            __FILE__, __FUNCTION__, i);
 
                 rkmessages[i].payload = rd_strdup(msg);
                 rkmessages[i].len     = strlen(msg);

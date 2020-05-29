@@ -47,7 +47,7 @@
 #include "rdkafka.h"  /* for Kafka driver */
 
 
-static int run = 1;
+static volatile sig_atomic_t run = 1;
 static rd_kafka_t *rk;
 static int exit_eof = 0;
 static int quiet = 0;
@@ -520,6 +520,7 @@ int main (int argc, char **argv) {
          " Options:\n"
          "  -C | -P         Consumer or Producer mode\n"
                         "  -L              Metadata list mode\n"
+<<<<<<< HEAD
          "  -t <topic>      Topic to fetch / produce\n"
          "  -p <num>        Partition (random partitioner)\n"
          "  -b <brokers>    Broker address (localhost:9092)\n"
@@ -535,6 +536,23 @@ int main (int argc, char **argv) {
          "                  %s\n"
          "  -q              Be quiet\n"
          "  -A              Raw payload output (consumer)\n"
+=======
+			"  -t <topic>      Topic to fetch / produce\n"
+			"  -p <num>        Partition (random partitioner)\n"
+			"  -b <brokers>    Broker address (localhost:9092)\n"
+			"  -z <codec>      Enable compression:\n"
+			"                  none|gzip|snappy|lz4|zstd\n"
+			"  -o <offset>     Start offset (consumer):\n"
+			"                  beginning, end, NNNNN or -NNNNN\n"
+			"                  wmark returns the current hi&lo "
+			"watermarks.\n"
+			"  -e              Exit consumer when last message\n"
+			"                  in partition has been received.\n"
+			"  -d [facs..]     Enable debugging contexts:\n"
+			"                  %s\n"
+			"  -q              Be quiet\n"
+			"  -A              Raw payload output (consumer)\n"
+>>>>>>> upstream/master
                         "  -H <name[=value]> Add header to message (producer)\n"
          "  -X <prop=name>  Set arbitrary librdkafka "
          "configuration property\n"
@@ -690,6 +708,7 @@ while(run) {
                 rd_kafka_conf_set(conf, "enable.partition.eof", "true",
                                   NULL, 0);
 
+<<<<<<< HEAD
       /* Create Kafka handle */
       if (!(rk = rd_kafka_new(RD_KAFKA_CONSUMER, conf,
                errstr, sizeof(errstr)))) {
@@ -708,6 +727,25 @@ while(run) {
       if (get_wmarks) {
          int64_t lo, hi;
                         rd_kafka_resp_err_t err;
+=======
+		/* Create Kafka handle */
+		if (!(rk = rd_kafka_new(RD_KAFKA_CONSUMER, conf,
+					errstr, sizeof(errstr)))) {
+			fprintf(stderr,
+				"%% Failed to create new consumer: %s\n",
+				errstr);
+			exit(1);
+		}
+
+		/* Add brokers */
+		if (rd_kafka_brokers_add(rk, brokers) == 0) {
+			fprintf(stderr, "%% No valid brokers specified\n");
+			exit(1);
+		}
+
+		if (get_wmarks) {
+			int64_t lo, hi;
+>>>>>>> upstream/master
 
          /* Only query for hi&lo partition watermarks */
 
@@ -732,11 +770,19 @@ while(run) {
       rkt = rd_kafka_topic_new(rk, topic, topic_conf);
                 topic_conf = NULL; /* Now owned by topic */
 
+<<<<<<< HEAD
       /* Start consuming */
       if (rd_kafka_consume_start(rkt, partition, start_offset) == -1){
          rd_kafka_resp_err_t err = rd_kafka_last_error();
          fprintf(stderr, "%% Failed to start consuming: %s\n",
             rd_kafka_err2str(err));
+=======
+		/* Start consuming */
+		if (rd_kafka_consume_start(rkt, partition, start_offset) == -1){
+			err = rd_kafka_last_error();
+			fprintf(stderr, "%% Failed to start consuming: %s\n",
+				rd_kafka_err2str(err));
+>>>>>>> upstream/master
                         if (err == RD_KAFKA_RESP_ERR__INVALID_ARG)
                                 fprintf(stderr,
                                         "%% Broker based offset storage "
@@ -745,9 +791,14 @@ while(run) {
          exit(1);
       }
 
+<<<<<<< HEAD
       while (run) {
          rd_kafka_message_t *rkmessage;
                         rd_kafka_resp_err_t err;
+=======
+		while (run) {
+			rd_kafka_message_t *rkmessage;
+>>>>>>> upstream/master
 
                         /* Poll for errors, etc. */
                         rd_kafka_poll(rk, 0);
@@ -790,7 +841,7 @@ while(run) {
       rd_kafka_destroy(rk);
 
         } else if (mode == 'L') {
-                rd_kafka_resp_err_t err = RD_KAFKA_RESP_ERR_NO_ERROR;
+                err = RD_KAFKA_RESP_ERR_NO_ERROR;
 
       /* Create Kafka handle */
       if (!(rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf,

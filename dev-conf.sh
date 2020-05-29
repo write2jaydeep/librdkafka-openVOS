@@ -30,25 +30,69 @@
 #
 # Configure librdkafka for development
 #
+# Usage:
+#   ./dev-conf.sh             - Build with settings in dev-conf.sh
+#   ./dev-conf.sh asan|tsan   - ... and ASAN or TSAN
+#   ./dev-conf.sh clean       - Non-development clean build
+#
 
 set -e
-./configure --clean
+
+build () {
+    local btype="$1"
+    local opts="$2"
+
+    echo "$btype configuration options: $opts"
+    ./configure --clean
+    ./configure $opts
+
+    make clean
+    make -j
+    (cd tests ; make -j build)
+
+    echo "$btype build done"
+}
+
+OPTS=""
+
+case "$1" in
+    clean)
+        build Clean
+        exit $?
+        ;;
+    asan)
+        FSAN='-fsanitize=address'
+        ;;
+    tsan)
+        FSAN='-fsanitize=thread'
+        # C11 threads in glibc don't play nice with TSAN,
+        # so use the builtin tinycthreads instead.
+        OPTS="$OPTS --disable-c11threads"
+        ;;
+    ubsan)
+        FSAN='-fsanitize=undefined -fsanitize-undefined-trap-on-error -fno-omit-frame-pointer'
+        ;;
+    "")
+        ;;
+    *)
+        echo "Usage: $0 [clean|asan|tsan]"
+        exit 1
+        ;;
+esac
+
+
+# enable variable shadow warnings and strict C99, C++98 checks.
+#export CFLAGS="$CFLAGS -std=c99 -Wshadow=compatible-local -Wshadow=local"
+#export CXXFLAGS="$CXXFLAGS -std=c++98 -Wshadow=compatible-local -Wshadow=local"
 
 # enable pedantic
-#export CFLAGS='-std=c99 -pedantic -Wshadow'
-#export CXXFLAGS='-std=c++98 -pedantic'
-
-# enable FSAN address, thread, ..
-FSAN="-fsanitize=address"
-#FSAN="-fsanitize=thread"
-#FSAN="-fsanitize=undefined -fsanitize-undefined-trap-on-error -fno-omit-frame-pointer"
+#export CFLAGS='-pedantic'
+#export CXXFLAGS='-pedantic'
 
 if [[ ! -z $FSAN ]]; then
     export CPPFLAGS="$CPPFLAGS $FSAN"
     export LDFLAGS="$LDFLAGS $FSAN"
 fi
-
-OPTS=""
 
 # enable devel asserts
 OPTS="$OPTS --enable-devel"
@@ -65,15 +109,8 @@ OPTS="$OPTS --disable-optimization"
 # disable cyrus-sasl
 #OPTS="$OPTS --disable-sasl"
 
-# enable sharedptr debugging
-#OPTS="$OPTS --enable-sharedptr-debug"
-
 #enable refcnt debugging
 #OPTS="$OPTS --enable-refcnt-debug"
 
-echo "Devel configuration options: $OPTS"
-./configure $OPTS
+build Development "$OPTS"
 
-make clean
-make -j
-(cd tests ; make -j build)

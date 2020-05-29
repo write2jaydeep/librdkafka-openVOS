@@ -50,4 +50,37 @@ typedef uint8_t rd_bool_t;
 #define rd_true   1
 #define rd_false  0
 
+
+/**
+ * @enum Denotes an async or sync operation
+ */
+typedef enum {
+        RD_SYNC = 0, /**< Synchronous/blocking */
+        RD_ASYNC,    /**< Asynchronous/non-blocking */
+} rd_async_t;
+
+
+/**
+ * @enum Instruct function to acquire or not to acquire a lock
+ */
+typedef enum {
+        RD_DONT_LOCK = 0,  /**< Do not acquire lock */
+        RD_DO_LOCK = 1,    /**< Do acquire lock */
+} rd_dolock_t;
+
+
+/*
+ * Helpers
+ */
+
+/**
+ * @brief Overflow-safe type-agnostic compare for use in cmp functions.
+ *
+ * @warning A and B may be evaluated multiple times.
+ *
+ * @returns -1, 0 or 1.
+ */
+#define RD_CMP(A,B)  (int)((A) < (B) ? -1 : ((A) > (B)))
+
+
 #endif /* _RDTYPES_H_ */

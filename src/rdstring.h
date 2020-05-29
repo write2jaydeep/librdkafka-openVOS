@@ -30,6 +30,20 @@
 #ifndef _RDSTRING_H_
 #define _RDSTRING_H_
 
+static RD_INLINE RD_UNUSED
+void rd_strlcpy (char *dst, const char *src, size_t dstsize) {
+#if HAVE_STRLCPY
+        (void)strlcpy(dst, src, dstsize);
+#else
+        if (likely(dstsize > 0)) {
+                size_t srclen = strlen(src);
+                size_t copylen = RD_MIN(srclen, dstsize-1);
+                memcpy(dst, src, copylen);
+                dst[copylen] = '\0';
+        }
+#endif
+}
+
 
 
 char *rd_string_render (const char *templ,

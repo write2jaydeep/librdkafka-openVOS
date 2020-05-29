@@ -45,7 +45,7 @@
 #include "rdkafka.h"
 long getMicrotime();
 
-static int run = 1;
+static volatile sig_atomic_t run = 1;
 
 /**
  * @brief Signal termination of program
@@ -103,7 +103,6 @@ int main (int argc, char **argv) {
 
 //while(run) {
         rd_kafka_t *rk;         /* Producer instance handle */
-        rd_kafka_topic_t *rkt;  /* Topic object */
         rd_kafka_conf_t *conf;  /* Temporary configuration object */
         char errstr[512];       /* librdkafka API error reporting buffer */
         char buf[512];          /* Message value temporary buffer */
@@ -140,9 +139,12 @@ int main (int argc, char **argv) {
         /* Set the delivery report callback.
          * This callback will be called once per message to inform
          * the application if delivery succeeded or failed.
-         * See dr_msg_cb() above. */
+         * See dr_msg_cb() above.
+         * The callback is only triggered from rd_kafka_poll() and
+         * rd_kafka_flush(). */
         rd_kafka_conf_set_dr_msg_cb(conf, dr_msg_cb);
 
+<<<<<<< HEAD:examples/rdkafka_simple_producer.c
          /* Minimize wait-for-larger-batch delay (since there will be no batching) */
         rd_kafka_conf_set(conf, "queue.buffering.max.ms", "1", errstr, sizeof(errstr));
   
@@ -167,6 +169,8 @@ rd_kafka_conf_set(conf,"","",errstr, sizeof(errstr));
 
 rd_kafka_conf_set(conf, "socket.nagle.disable", "true", errstr, sizeof(errstr));
 
+=======
+>>>>>>> upstream/master:examples/producer.c
         /*
          * Create producer instance.
          *
@@ -178,21 +182,6 @@ rd_kafka_conf_set(conf, "socket.nagle.disable", "true", errstr, sizeof(errstr));
         if (!rk) {
                 fprintf(stderr,
                         "%% Failed to create new producer: %s\n", errstr);
-                return 1;
-        }
-
-
-        /* Create topic object that will be reused for each message
-         * produced.
-         *
-         * Both the producer instance (rd_kafka_t) and topic objects (topic_t)
-         * are long-lived objects that should be reused as much as possible.
-         */
-        rkt = rd_kafka_topic_new(rk, topic, NULL);
-        if (!rkt) {
-                fprintf(stderr, "%% Failed to create topic object: %s\n",
-                        rd_kafka_err2str(rd_kafka_last_error()));
-                rd_kafka_destroy(rk);
                 return 1;
         }
 
@@ -209,6 +198,7 @@ run = 1;
                 signal(SIGINT, stop);
                 strcpy(buf,"Hello This is Test from rdkafka_simple_producer");
                 size_t len = strlen(buf);
+                rd_kafka_resp_err_t err;
 
                 if (buf[len-1] == '\n') /* Remove newline */
                         buf[--len] = '\0';
@@ -230,6 +220,7 @@ run = 1;
                  * when the message has been delivered (or failed).
                  */
         retry:
+<<<<<<< HEAD:examples/rdkafka_simple_producer.c
                 if (rd_kafka_produce(
                             /* Topic object */
                             rkt,
@@ -247,16 +238,33 @@ run = 1;
                              * msg_opaque. */
                             NULL) == -1) {
                         /**
+=======
+                err = rd_kafka_producev(
+                        /* Producer handle */
+                        rk,
+                        /* Topic name */
+                        RD_KAFKA_V_TOPIC(topic),
+                        /* Make a copy of the payload. */
+                        RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
+                        /* Message value and length */
+                        RD_KAFKA_V_VALUE(buf, len),
+                        /* Per-Message opaque, provided in
+                         * delivery report callback as
+                         * msg_opaque. */
+                        RD_KAFKA_V_OPAQUE(NULL),
+                        /* End sentinel */
+                        RD_KAFKA_V_END);
+
+                if (err) {
+                        /*
+>>>>>>> upstream/master:examples/producer.c
                          * Failed to *enqueue* message for producing.
                          */
                         fprintf(stderr,
                                 "%% Failed to produce to topic %s: %s\n",
-                                rd_kafka_topic_name(rkt),
-                                rd_kafka_err2str(rd_kafka_last_error()));
+                                topic, rd_kafka_err2str(err));
 
-                        /* Poll to handle delivery reports */
-                        if (rd_kafka_last_error() ==
-                            RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+                        if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
                                 /* If the internal queue is full, wait for
                                  * messages to be delivered and then retry.
                                  * The internal queue represents both
@@ -273,7 +281,7 @@ run = 1;
                 } else {
                         fprintf(stderr, "%% Enqueued message (%zd bytes) "
                                 "for topic %s\n",
-                                len, rd_kafka_topic_name(rkt));
+                                len, topic);
                 }
 
 
@@ -315,8 +323,16 @@ count = 0;
       //  fprintf(stderr, "%% Flushing final messages..\n");
     //    rd_kafka_flush(rk, 10*1000 /* wait for max 10 seconds */);
 
+<<<<<<< HEAD:examples/rdkafka_simple_producer.c
         /* Destroy topic object */
   //      rd_kafka_topic_destroy(rkt);
+=======
+        /* If the output queue is still not empty there is an issue
+         * with producing messages to the clusters. */
+        if (rd_kafka_outq_len(rk) > 0)
+                fprintf(stderr, "%% %d message(s) were not delivered\n",
+                        rd_kafka_outq_len(rk));
+>>>>>>> upstream/master:examples/producer.c
 
         /* Destroy the producer instance */
 //        rd_kafka_destroy(rk);

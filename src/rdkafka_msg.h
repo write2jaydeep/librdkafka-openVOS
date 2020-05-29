@@ -51,7 +51,6 @@
 #define RD_KAFKA_MSG_ATTR_CREATE_TIME      (0 << 3)
 #define RD_KAFKA_MSG_ATTR_LOG_APPEND_TIME  (1 << 3)
 
-
 /**
  * @brief MessageSet.Attributes for MsgVersion v2
  *
@@ -85,6 +84,7 @@ typedef struct rd_kafka_msg_s {
 #define RD_KAFKA_MSG_F_FREE_RKM     0x10000 /* msg_t is allocated */
 #define RD_KAFKA_MSG_F_ACCOUNT      0x20000 /* accounted for in curr_msgs */
 #define RD_KAFKA_MSG_F_PRODUCER     0x40000 /* Producer message */
+#define RD_KAFKA_MSG_F_CONTROL      0x80000 /* Control message */
 
 	rd_kafka_timestamp_type_t rkm_tstype; /* rkm_timestamp type */
 	int64_t    rkm_timestamp;  /* Message format V1.
@@ -122,6 +122,7 @@ typedef struct rd_kafka_msg_s {
                 } producer;
 #define rkm_ts_timeout rkm_u.producer.ts_timeout
 #define rkm_ts_enq     rkm_u.producer.ts_enq
+#define rkm_msgid      rkm_u.producer.msgid
 
                 struct {
                         rd_kafkap_bytes_t binhdrs; /**< Unparsed
@@ -159,6 +160,19 @@ size_t rd_kafka_msg_wire_size (const rd_kafka_msg_t *rkm, int MsgVersion) {
         return size;
 }
 
+
+/**
+ * @returns the maximum total on-wire message size regardless of MsgVersion.
+ *
+ * @remark This does not account for the ProduceRequest, et.al, just the
+ *         per-message overhead.
+ */
+static RD_INLINE RD_UNUSED
+size_t rd_kafka_msg_max_wire_size (size_t keylen, size_t valuelen,
+                                   size_t hdrslen) {
+        return RD_KAFKAP_MESSAGE_V2_OVERHEAD +
+                keylen + valuelen + hdrslen;
+}
 
 /**
  * @returns the enveloping rd_kafka_msg_t pointer for a rd_kafka_msg_t
@@ -211,7 +225,7 @@ size_t rd_kafka_msgq_size (const rd_kafka_msgq_t *rkmq) {
 
 void rd_kafka_msg_destroy (rd_kafka_t *rk, rd_kafka_msg_t *rkm);
 
-int rd_kafka_msg_new (rd_kafka_itopic_t *rkt, int32_t force_partition,
+int rd_kafka_msg_new (rd_kafka_topic_t *rkt, int32_t force_partition,
 		      int msgflags,
 		      char *payload, size_t len,
 		      const void *keydata, size_t keylen,
@@ -377,12 +391,7 @@ int rd_kafka_msg_cmp_msgid (const void *_a, const void *_b) {
 
         rd_dassert(a->rkm_u.producer.msgid);
 
-        if (a->rkm_u.producer.msgid > b->rkm_u.producer.msgid)
-                return 1;
-        else if (a->rkm_u.producer.msgid < b->rkm_u.producer.msgid)
-                return -1;
-        else
-                return 0;
+        return RD_CMP(a->rkm_u.producer.msgid, b->rkm_u.producer.msgid);
 }
 
 /**
@@ -395,12 +404,7 @@ int rd_kafka_msg_cmp_msgid_lifo (const void *_a, const void *_b) {
 
         rd_dassert(a->rkm_u.producer.msgid);
 
-        if (a->rkm_u.producer.msgid < b->rkm_u.producer.msgid)
-                return 1;
-        else if (a->rkm_u.producer.msgid > b->rkm_u.producer.msgid)
-                return -1;
-        else
-                return 0;
+        return RD_CMP(b->rkm_u.producer.msgid, a->rkm_u.producer.msgid);
 }
 
 
@@ -421,7 +425,7 @@ rd_kafka_msgq_enq_sorted0 (rd_kafka_msgq_t *rkmq,
  * @warning The message must have a msgid set.
  * @returns the message count of the queue after enqueuing the message.
  */
-int rd_kafka_msgq_enq_sorted (const rd_kafka_itopic_t *rkt,
+int rd_kafka_msgq_enq_sorted (const rd_kafka_topic_t *rkt,
                               rd_kafka_msgq_t *rkmq,
                               rd_kafka_msg_t *rkm);
 
@@ -476,12 +480,19 @@ rd_kafka_msgq_overlap (const rd_kafka_msgq_t *a, const rd_kafka_msgq_t *b) {
 int rd_kafka_msgq_age_scan (struct rd_kafka_toppar_s *rktp,
                             rd_kafka_msgq_t *rkmq,
                             rd_kafka_msgq_t *timedout,
-                            rd_ts_t now);
+                            rd_ts_t now,
+                            rd_ts_t *abs_next_timeout);
+
+void rd_kafka_msgq_split (rd_kafka_msgq_t *leftq, rd_kafka_msgq_t *rightq,
+                          rd_kafka_msg_t *first_right,
+                          int cnt, int64_t bytes);
 
 rd_kafka_msg_t *rd_kafka_msgq_find_pos (const rd_kafka_msgq_t *rkmq,
+                                        const rd_kafka_msg_t *start_pos,
                                         const rd_kafka_msg_t *rkm,
                                         int (*cmp) (const void *,
-                                                    const void *));
+                                                    const void *),
+                                        int *cntp, int64_t *bytesp);
 
 void rd_kafka_msgq_set_metadata (rd_kafka_msgq_t *rkmq,
                                  int64_t base_offset, int64_t timestamp,
@@ -491,8 +502,8 @@ void rd_kafka_msgq_move_acked (rd_kafka_msgq_t *dest, rd_kafka_msgq_t *src,
                                uint64_t last_msgid,
                                rd_kafka_msg_status_t status);
 
-int rd_kafka_msg_partitioner (rd_kafka_itopic_t *rkt, rd_kafka_msg_t *rkm,
-                              int do_lock);
+int rd_kafka_msg_partitioner (rd_kafka_topic_t *rkt, rd_kafka_msg_t *rkm,
+                              rd_dolock_t do_lock);
 
 
 rd_kafka_message_t *rd_kafka_message_get (struct rd_kafka_op_s *rko);
@@ -511,7 +522,7 @@ static RD_INLINE RD_UNUSED int32_t rd_kafka_seq_wrap (int64_t seq) {
 
 void rd_kafka_msgq_dump (FILE *fp, const char *what, rd_kafka_msgq_t *rkmq);
 
-rd_kafka_msg_t *ut_rd_kafka_msg_new (void);
+rd_kafka_msg_t *ut_rd_kafka_msg_new (size_t msgsize);
 void ut_rd_kafka_msgq_purge (rd_kafka_msgq_t *rkmq);
 int unittest_msg (void);
 

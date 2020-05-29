@@ -33,7 +33,7 @@
 #else
 #include "lz4frame.h"
 #endif
-#include "xxhash.h"
+#include "rdxxhash.h"
 
 #include "rdbuf.h"
 
@@ -229,7 +229,7 @@ rd_kafka_lz4_decompress (rd_kafka_broker_t *rkb, int proper_hc, int64_t Offset,
         if (!out) {
                 rd_rkb_log(rkb, LOG_WARNING, "LZ4DEC",
                            "Unable to allocate decompression "
-                           "buffer of %zd bytes: %s",
+                           "buffer of %"PRIusz" bytes: %s",
                            estimated_uncompressed_size, rd_strerror(errno));
                 err = RD_KAFKA_RESP_ERR__CRIT_SYS_RESOURCE;
                 goto done;
@@ -276,7 +276,7 @@ rd_kafka_lz4_decompress (rd_kafka_broker_t *rkb, int proper_hc, int64_t Offset,
                         if (!(tmp = rd_realloc(out, outlen + extra))) {
                                 rd_rkb_log(rkb, LOG_WARNING, "LZ4DEC",
                                            "Unable to grow decompression "
-                                           "buffer to %zd+%zd bytes: %s",
+                                           "buffer to %"PRIusz"+%"PRIusz" bytes: %s",
                                            outlen, extra,rd_strerror(errno));
                                 err = RD_KAFKA_RESP_ERR__CRIT_SYS_RESOURCE;
                                 goto done;
@@ -345,7 +345,7 @@ rd_kafka_lz4_compress (rd_kafka_broker_t *rkb, int proper_hc, int comp_level,
                         .frameInfo = { .blockMode = LZ4F_blockIndependent },
                         .compressionLevel = comp_level
                 };
-				
+
         *outbuf = NULL;
 
         out_sz = LZ4F_compressBound(len, NULL) + 1000;
@@ -371,6 +371,7 @@ rd_kafka_lz4_compress (rd_kafka_broker_t *rkb, int proper_hc, int comp_level,
                 rd_rkb_dbg(rkb, MSG, "LZ4COMPR",
                            "Unable to create LZ4 compression context: %s",
                            LZ4F_getErrorName(r));
+                rd_free(out);
                 return RD_KAFKA_RESP_ERR__CRIT_SYS_RESOURCE;
         }
 

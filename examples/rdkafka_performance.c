@@ -52,13 +52,13 @@
 #include "rd.h"
 #include "rdtime.h"
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include "../win32/wingetopt.h"
 #include "../win32/wintime.h"
 #endif
 
 
-static int run = 1;
+static volatile sig_atomic_t run = 1;
 static int forever = 1;
 static rd_ts_t dispintvl = 1000;
 static int do_seq = 0;
@@ -774,7 +774,7 @@ static rd_kafka_resp_err_t do_produce (rd_kafka_t *rk,
  */
 static void do_sleep (int sleep_us) {
         if (sleep_us > 100) {
-#ifdef _MSC_VER
+#ifdef _WIN32
                 Sleep(sleep_us / 1000);
 #else
                 usleep(sleep_us);
@@ -1263,9 +1263,15 @@ int main (int argc, char **argv) {
         if (stats_intvlstr) {
                 /* User enabled stats (-T) */
 
-#ifndef _MSC_VER
+#ifndef _WIN32
                 if (stats_cmd) {
-                        if (!(stats_fp = popen(stats_cmd, "we"))) {
+                        if (!(stats_fp = popen(stats_cmd,
+#ifdef __linux__
+                                               "we"
+#else
+                                               "w"
+#endif
+                                               ))) {
                                 fprintf(stderr,
                                         "%% Failed to start stats command: "
                                         "%s: %s", stats_cmd, strerror(errno));
@@ -1528,6 +1534,7 @@ int main (int argc, char **argv) {
          if (r == -1) {
                                 fprintf(stderr, "%% Error creating queue: %s\n",
                                         rd_kafka_err2str(rd_kafka_last_error()));
+<<<<<<< HEAD
             exit(1);
          }
       }
@@ -1568,6 +1575,47 @@ int main (int argc, char **argv) {
          }
 
          cnt.t_fetch_latency += rd_clock() - fetch_latency;
+=======
+				exit(1);
+			}
+		}
+
+		while (run && (msgcnt == -1 || msgcnt > (int)cnt.msgs)) {
+			/* Consume messages.
+			 * A message may either be a real message, or
+			 * an error signaling (if rkmessage->err is set).
+			 */
+			uint64_t fetch_latency;
+			ssize_t r;
+
+			fetch_latency = rd_clock();
+
+			if (batch_size) {
+				int partition = partitions ? partitions[0] :
+				    RD_KAFKA_PARTITION_UA;
+
+				/* Batch fetch mode */
+				r = rd_kafka_consume_batch(rkt, partition,
+							   1000,
+							   rkmessages,
+							   batch_size);
+				if (r != -1) {
+					for (i = 0 ; (ssize_t)i < r ; i++) {
+						msg_consume(rkmessages[i],
+							NULL);
+						rd_kafka_message_destroy(
+							rkmessages[i]);
+					}
+				}
+			} else {
+				/* Queue mode */
+				r = rd_kafka_consume_callback_queue(rkqu, 1000,
+							msg_consume,
+							NULL);
+			}
+
+			cnt.t_fetch_latency += rd_clock() - fetch_latency;
+>>>>>>> upstream/master
                         if (r == -1)
                                 fprintf(stderr, "%% Error: %s\n",
                                         rd_kafka_err2str(rd_kafka_last_error()));
@@ -1607,11 +1655,18 @@ int main (int argc, char **argv) {
 
                 global_rk = rk = NULL;
 
+<<<<<<< HEAD
    } else if (mode == 'G') {
       /*
        * High-level balanced Consumer
        */
       rd_kafka_resp_err_t err;
+=======
+	} else if (mode == 'G') {
+		/*
+		 * High-level balanced Consumer
+		 */
+>>>>>>> upstream/master
 
       rd_kafka_conf_set_rebalance_cb(conf, rebalance_cb);
       rd_kafka_conf_set_default_topic_conf(conf, topic_conf);
@@ -1692,7 +1747,7 @@ int main (int argc, char **argv) {
       fclose(latency_fp);
 
         if (stats_fp) {
-#ifndef _MSC_VER
+#ifndef _WIN32
                 pclose(stats_fp);
 #endif
                 stats_fp = NULL;
