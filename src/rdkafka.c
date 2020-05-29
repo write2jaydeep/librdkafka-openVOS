@@ -36,7 +36,8 @@
 #include <sys/stat.h>
 #if !_WIN32
 #include <sys/types.h>
-#include <dirent.h>
+/* JP: 20200529: modified to support on VOS */
+#include <dirent.incl.c>
 #endif
 
 #include "rdkafka_int.h"
@@ -962,12 +963,8 @@ void rd_kafka_destroy_final (rd_kafka_t *rk) {
 
 static void rd_kafka_destroy_app (rd_kafka_t *rk, int flags) {
         thrd_t thrd;
-<<<<<<< HEAD
-		static char rd_kafka_thread_name[64] = "app"; //TODO: why need this?
-#ifndef _MSC_VER
-=======
+          static char rd_kafka_thread_name[64] = "app"; //TODO: why need this?
 #ifndef _WIN32
->>>>>>> upstream/master
 	int term_sig = rk->rk_conf.term_sig;
 #endif
         int res;
@@ -4553,9 +4550,9 @@ rd_bool_t rd_kafka_dir_is_empty (const char *path) {
                 if (!strcmp(d->d_name, ".") ||
                     !strcmp(d->d_name, ".."))
                         continue;
-
-                if (d->d_type == DT_REG || d->d_type == DT_LNK ||
-                    d->d_type == DT_DIR) {
+                /* JP: 20200529: modified to support on VOS */
+                if (d->d_vos_type == VOS_TYPE_DEVICE || d->d_vos_type == VOS_TYPE_LINK ||
+                    d->d_vos_type == VOS_TYPE_DIR) {
                         closedir(dir);
                         return rd_false;
                 }
