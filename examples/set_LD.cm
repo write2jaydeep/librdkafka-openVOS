@@ -1,0 +1,14 @@
+set LD_LIBRARY_PATH=%tel4#m4_mas>Stratusoft>ARI_Techsupport>SGI_CLIENT_BUILD>sgi_client_instl>libs
+set KRB5_CONFIG=/Stratusoft/ARI_Techsupport/SGI_CLIENT_BUILD/sgi_client_instl/certs/krb5.conf
+set SASL_PATH=/Stratusoft/ARI_Techsupport/SGI_CLIENT_BUILD/sgi_client_instl/libs
+set LD_PRELOAD=%tel4#m4_mas>Stratusoft>ARI_Techsupport>SGI_CLIENT_BUILD>sgi_client_instl>librdkafka.so.1
+add_library_path object %tel4#m4_mas>Stratusoft>ARI_Techsupport>SGI_CLIENT_BUILD>sgi_client_instl -first
+add_library_path command  %tel4#m4_mas>Stratusoft>ARI_Techsupport>SGI_CLIENT_BUILD>sgi_client_instl -first
+add_library_path object %tel4#m4_mas>Stratusoft>ARI_Techsupport>SGI_CLIENT_BUILD>sgi_client_instl>libs -first
+
+
+
+& set KRB5_CONFIG=%tel4#m4_mas>Stratusoft>ARI_Techsupport>SGI_CLIENT_BUILD>sgi_client_instl>certs>krb5.conf
+
+
+& set KRB5_CONFIG=/Stratusoft/ARI_Techsupport/work_dir/Kerberos/src/util/profile/krb5.conf

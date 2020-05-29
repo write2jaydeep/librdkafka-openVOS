@@ -35,12 +35,15 @@
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <time.h>
+#include <stdlib.h>
+#include <sys/time.h>
 
 
 /* Typical include path would be <librdkafka/rdkafka.h>, but this program
  * is builtin from within the librdkafka source tree and thus differs. */
 #include "rdkafka.h"
-
+long getMicrotime();
 
 static int run = 1;
 
@@ -52,6 +55,11 @@ static void stop (int sig) {
         fclose(stdin); /* abort fgets() */
 }
 
+long getMicrotime(){
+     struct timeval currentTime;
+     gettimeofday(&currentTime, NULL);
+     return currentTime.tv_sec * (int)1e6 + currentTime.tv_usec;
+}
 
 /**
  * @brief Message delivery report callback.
@@ -66,9 +74,20 @@ static void stop (int sig) {
  */
 static void dr_msg_cb (rd_kafka_t *rk,
                        const rd_kafka_message_t *rkmessage, void *opaque) {
+time_t current_time;
+    char* c_time_string;
+
+current_time = time(NULL);
+
+c_time_string = ctime(&current_time);
+
+(void) printf("Current time is %s", c_time_string);
         if (rkmessage->err)
+         {
                 fprintf(stderr, "%% Message delivery failed: %s\n",
                         rd_kafka_err2str(rkmessage->err));
+               printf("JD:client_k: %s : %d\n",(char *)rkmessage->payload,(int)rkmessage->len);
+         }
         else
                 fprintf(stderr,
                         "%% Message delivered (%zd bytes, "
@@ -81,6 +100,8 @@ static void dr_msg_cb (rd_kafka_t *rk,
 
 
 int main (int argc, char **argv) {
+
+//while(run) {
         rd_kafka_t *rk;         /* Producer instance handle */
         rd_kafka_topic_t *rkt;  /* Topic object */
         rd_kafka_conf_t *conf;  /* Temporary configuration object */
@@ -88,6 +109,7 @@ int main (int argc, char **argv) {
         char buf[512];          /* Message value temporary buffer */
         const char *brokers;    /* Argument: broker list */
         const char *topic;      /* Argument: topic to produce to */
+        long int count = 0;
 
         /*
          * Argument validation
@@ -99,7 +121,6 @@ int main (int argc, char **argv) {
 
         brokers = argv[1];
         topic   = argv[2];
-
 
         /*
          * Create Kafka client configuration place-holder
@@ -122,6 +143,29 @@ int main (int argc, char **argv) {
          * See dr_msg_cb() above. */
         rd_kafka_conf_set_dr_msg_cb(conf, dr_msg_cb);
 
+         /* Minimize wait-for-larger-batch delay (since there will be no batching) */
+        rd_kafka_conf_set(conf, "queue.buffering.max.ms", "1", errstr, sizeof(errstr));
+  
+        rd_kafka_conf_set(conf,"builtin.features","sasl_gssapi",errstr, sizeof(errstr));
+
+rd_kafka_conf_set(conf,"security.protocol","sasl_ssl",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"metadata.broker.list","SASL_SSL://stratusoft1.ddns.net:9997",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"sasl.mechanisms","GSSAPI",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"sasl.kerberos.service.name","kafkaclient",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"sasl.kerberos.principal","kafkaclient/stratusoft1.ddns.net@STRATUSOFT2.DDNS.NET",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"sasl.kerberos.keytab","stratusoft1.keytab",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"ssl.ca.location","ca-cert",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"ssl.certificate.location","rdclient.pem",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"ssl.key.location","rdclient.key",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"ssl.key.password","stratusoft",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"sasl.kerberos.kinit.cmd","kinit -S kafkaclient/stratusoft1.ddns.net -k -t /Stratusoft/ARI_Techsupport/SGI_CLIENT_BUILD/sgi_client_instl/certs/stratusoft1.keytab kafkaclient/stratusoft1.ddns.net@STRATUSOFT2.DDNS.NET",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"","",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"","",errstr, sizeof(errstr));
+rd_kafka_conf_set(conf,"","",errstr, sizeof(errstr));
+       /* Minimize wait-for-socket delay (otherwise you will lose 100ms per message instead just the RTT) */
+//        rd_kafka_conf_set(conf, "debug", "msg", errstr, sizeof(errstr));
+
+rd_kafka_conf_set(conf, "socket.nagle.disable", "true", errstr, sizeof(errstr));
 
         /*
          * Create producer instance.
@@ -159,8 +203,11 @@ int main (int argc, char **argv) {
                 "%% Type some text and hit enter to produce message\n"
                 "%% Or just hit enter to only serve delivery reports\n"
                 "%% Press Ctrl-C or Ctrl-D to exit\n");
-
-        while (run && fgets(buf, sizeof(buf), stdin)) {
+run = 1;
+//        while (run && fgets(buf, sizeof(buf), stdin)) {
+          while (run) {
+                signal(SIGINT, stop);
+                strcpy(buf,"Hello This is Test from rdkafka_simple_producer");
                 size_t len = strlen(buf);
 
                 if (buf[len-1] == '\n') /* Remove newline */
@@ -169,7 +216,7 @@ int main (int argc, char **argv) {
                 if (len == 0) {
                         /* Empty line: only serve delivery reports */
                         rd_kafka_poll(rk, 0/*non-blocking */);
-                        continue;
+//                        continue;
                 }
 
                 /*
@@ -187,7 +234,8 @@ int main (int argc, char **argv) {
                             /* Topic object */
                             rkt,
                             /* Use builtin partitioner to select partition*/
-                            RD_KAFKA_PARTITION_UA,
+//                            RD_KAFKA_PARTITION_UA,
+                              0,
                             /* Make a copy of the payload. */
                             RD_KAFKA_MSG_F_COPY,
                             /* Message payload (value) and length */
@@ -240,21 +288,39 @@ int main (int argc, char **argv) {
                  * to make sure previously produced messages have their
                  * delivery report callback served (and any other callbacks
                  * you register). */
-                rd_kafka_poll(rk, 0/*non-blocking*/);
-        }
+//                rd_kafka_poll(rk, -1/*non-blocking*/);
+//printf("before: %ld\n",getMicrotime());
+while (rd_kafka_outq_len(rk) > 0)
+{
+count++;
+                      rd_kafka_poll(rk, 50);
+}
+
+printf("after: %ld : %ld\n",getMicrotime(),count);
+count = 0;
+// fprintf(stderr, "%% Flushing final messages..\n");
+  //      rd_kafka_flush(rk, 10*1000 /* wait for max 10 seconds */);          
+        /* Destroy topic object */
+//        rd_kafka_topic_destroy(rkt);
+
+         /* Destroy the producer instance */
+  //      rd_kafka_destroy(rk);
+
+        } //while(run)
 
 
         /* Wait for final messages to be delivered or fail.
          * rd_kafka_flush() is an abstraction over rd_kafka_poll() which
          * waits for all messages to be delivered. */
-        fprintf(stderr, "%% Flushing final messages..\n");
-        rd_kafka_flush(rk, 10*1000 /* wait for max 10 seconds */);
+      //  fprintf(stderr, "%% Flushing final messages..\n");
+    //    rd_kafka_flush(rk, 10*1000 /* wait for max 10 seconds */);
 
         /* Destroy topic object */
-        rd_kafka_topic_destroy(rkt);
+  //      rd_kafka_topic_destroy(rkt);
 
         /* Destroy the producer instance */
-        rd_kafka_destroy(rk);
+//        rd_kafka_destroy(rk);
 
         return 0;
 }
+
